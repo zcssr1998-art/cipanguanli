@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.IO;
+using Microsoft.Diagnostics.Tracing.Parsers;
 using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
 using Microsoft.Diagnostics.Tracing.Session;
 
@@ -11,9 +13,7 @@ public sealed class CDriveWriteMonitor
     public Task MonitorAsync(
         IProgress<IReadOnlyList<CDriveWriteActivityEntry>> progress,
         CancellationToken cancellationToken = default)
-    {
-        return Task.Run(() => Monitor(progress, cancellationToken), cancellationToken);
-    }
+        => Task.Run(() => Monitor(progress, cancellationToken), cancellationToken);
 
     private static void Monitor(IProgress<IReadOnlyList<CDriveWriteActivityEntry>> progress, CancellationToken ct)
     {
@@ -22,8 +22,7 @@ public sealed class CDriveWriteMonitor
 
         var aggregate = new ConcurrentDictionary<int, MutableEntry>();
         var sessionName = $"Cipanguanli-CDriveWrite-{Environment.ProcessId}-{Guid.NewGuid():N}";
-        using var session = new TraceEventSession(sessionName);
-        session.StopOnDispose = true;
+        using var session = new TraceEventSession(sessionName) { StopOnDispose = true };
 
         session.Source.Kernel.FileIOWrite += data =>
         {
@@ -34,7 +33,7 @@ public sealed class CDriveWriteMonitor
                 var pid = data.ProcessID;
                 if (pid < 0) return;
                 var name = string.IsNullOrWhiteSpace(data.ProcessName) ? $"PID {pid}" : data.ProcessName;
-                var bytes = Math.Max(0L, data.IoSize);
+                var bytes = Math.Max(0L, Convert.ToInt64(data.IoSize));
                 aggregate.AddOrUpdate(pid,
                     _ => new MutableEntry(name, bytes, fileName),
                     (_, old) =>
@@ -53,7 +52,7 @@ public sealed class CDriveWriteMonitor
         {
             try
             {
-                var snapshot = aggregate
+                progress.Report(aggregate
                     .Select(kv => new CDriveWriteActivityEntry
                     {
                         ProcessId = kv.Key,
@@ -63,15 +62,14 @@ public sealed class CDriveWriteMonitor
                     })
                     .OrderByDescending(x => x.BytesWritten)
                     .Take(100)
-                    .ToArray();
-                progress.Report(snapshot);
+                    .ToArray());
             }
             catch { }
         }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
 
         using var registration = ct.Register(() =>
         {
-            try { session.Stop(noThrow: true); } catch { }
+            try { session.Stop(true); } catch { }
         });
 
         try { session.Source.Process(); }
