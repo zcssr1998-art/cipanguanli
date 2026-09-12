@@ -49,7 +49,7 @@ public static class SimilarMediaFinder
         return Math.Max(a, b) / min;
     }
 
-    internal static string NormalizeStem(string name)
+    public static string NormalizeStem(string name)
     {
         var value = name.ToLowerInvariant();
         value = Regex.Replace(value, @"\b(2160p|1440p|1080p|720p|4k|8k|hdr|hevc|x265|x264)\b", " ", RegexOptions.IgnoreCase);
