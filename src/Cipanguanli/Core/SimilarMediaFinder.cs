@@ -14,7 +14,7 @@ public static class SimilarMediaFinder
     public static IReadOnlyList<SimilarMediaGroup> Find(IEnumerable<LargeFileEntry> files)
     {
         var media = files.Where(f => MediaExtensions.Contains(Path.GetExtension(f.Path))).ToArray();
-        var groups = media
+        return media
             .GroupBy(f => NormalizeStem(Path.GetFileNameWithoutExtension(f.Path)), StringComparer.OrdinalIgnoreCase)
             .Where(g => !string.IsNullOrWhiteSpace(g.Key) && g.Count() > 1)
             .SelectMany(SplitBySize)
@@ -28,7 +28,6 @@ public static class SimilarMediaFinder
             })
             .OrderByDescending(g => g.TotalBytes)
             .ToArray();
-        return groups;
     }
 
     private static IEnumerable<List<LargeFileEntry>> SplitBySize(IGrouping<string, LargeFileEntry> group)
@@ -52,7 +51,7 @@ public static class SimilarMediaFinder
     public static string NormalizeStem(string name)
     {
         var value = name.ToLowerInvariant();
-        value = Regex.Replace(value, @"\b(2160p|1440p|1080p|720p|4k|8k|hdr|hevc|x265|x264)\b", " ", RegexOptions.IgnoreCase);
+        value = Regex.Replace(value, @"(2160p|1440p|1080p|720p|4k|8k|hdr|hevc|x265|x264)", " ", RegexOptions.IgnoreCase);
         value = Regex.Replace(value, @"(copy|副本|复制|final|最终|new|新版)", " ", RegexOptions.IgnoreCase);
         value = Regex.Replace(value, @"[\s_\-\.\(\)\[\]]*\d{1,3}$", " ");
         value = Regex.Replace(value, @"[^\p{L}\p{N}]+", " ").Trim();
