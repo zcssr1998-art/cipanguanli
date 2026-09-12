@@ -8,6 +8,5 @@
     <AssemblyName>Cipanguanli</AssemblyName>
     <RootNamespace>Cipanguanli</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Platforms>x64</Platforms>
   </PropertyGroup>
 </Project>
