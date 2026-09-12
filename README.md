@@ -1,57 +1,103 @@
-# 磁盘管理（Cipanguanli）
+# Cipanguanli / 磁盘空间管理器
 
-Windows 10/11 本地磁盘空间分析器。目标不是“显示一个饼图”，而是回答：**什么东西占空间、它大概是干嘛的、该不该动、去哪里定位。**
+Windows 10/11 x64 本地磁盘分析工具。目标不是做“无脑清理器”，而是先把磁盘空间解释清楚：**什么占空间、它是什么、能不能动、应该删除还是迁移。**
 
-## 当前第一版
+## v0.2 功能
 
-- 可同时扫描多个固定磁盘，也可添加单独目录
-- 自定义大文件阈值，默认 `5 GB`
-- 找出所有超过阈值的文件，并按大小降序显示
-- 显示逻辑大小 + 实际磁盘占用（压缩/稀疏文件会更准确）
-- 根据路径和扩展名自动解释用途与删除风险
-- 已覆盖：
-  - 腾讯视频 / 爱奇艺 / 优酷缓存与下载
-  - 微信文件
-  - Maya / ZBrush / Substance / Houdini / Unreal / Unity / XGen / Mari 等 3D/游戏工程
-  - 视频、贴图、压缩包、ISO/安装包、虚拟机磁盘、数据库、游戏资源包
-  - `safetensors / ckpt / gguf / pth / pt / onnx` 等 AI 模型权重
-  - Windows 系统关键文件
-- 聚合大文件夹占用，并通过目录名 + 文件类型特征判断“视频资源 / 3D工程 / AI模型目录”等
-- 单独列出“清理线索”：下载、播放器缓存、临时缓存、视频/归档类目录
-- 双击大文件可在资源管理器中定位
-- CSV 导出
-- 支持取消扫描
-- 默认不删除任何文件
+### 1. 大文件扫描
 
-## 为什么没有直接 fork 一个现成软件
+- 自定义阈值，例如 5 GB。
+- 扫描一个或多个固定磁盘/目录。
+- 大文件按大小降序。
+- 同时显示逻辑大小和 NTFS 实际占用。
+- 文件用途中文解释 + 风险等级。
+- 资源管理器定位、复制路径、CSV 导出。
 
-开发前检索了 GitHub。最接近目标的是 MIT 许可的 `valley-soft/powertoys-diskanalyzer`：扫描能力成熟，但它同时包含 PowerToys 插件、WinUI 3、Command Palette 和 MSIX 分发，直接 fork 会带来大量本项目不需要的复杂度。
+### 2. 可视化空间地图
 
-因此采用“复用成熟扫描思路 + 保留轻量桌面程序”的路线：当前仅适配复用了它的磁盘实际占用计算策略，并在此之上实现本项目自己的扫描器、中文用途注释、目录聚合和风险规则。授权见 `THIRD_PARTY_NOTICES.md`。
+扫描后生成分层目录树：
 
-## 构建
+- 显示大目录占扫描根目录的百分比。
+- 最多展开 5 层，每层仅保留显著占用目录，避免百万目录把 UI 卡死。
+- 双击节点直接打开文件夹。
 
-需要 .NET 8 SDK：
+### 3. 长期未使用的大文件
 
-```powershell
-dotnet build src/Cipanguanli/Cipanguanli.csproj -c Release
-dotnet test tests/Cipanguanli.Tests/Cipanguanli.Tests.csproj -c Release
-dotnet publish src/Cipanguanli/Cipanguanli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish
-```
+可自定义：
 
-## 测试策略
+- 未修改天数：默认 180 天，也可填 365 等。
+- 最小文件大小：默认 1 GB。
 
-GitHub Actions 使用真实 `windows-latest` runner：
+注意：**长期未修改不等于可删除。** 该页只是帮助发现被遗忘的大文件。
 
-1. 编译 WPF 项目
-2. 执行 xUnit 分类器/扫描器测试
-3. 发布 x64 自包含 EXE
-4. 直接运行发布后的 `Cipanguanli.exe --self-test`
-5. self-test 会在 Windows 临时目录创建测试文件、执行真实扫描、校验排序/分类/目录聚合，并输出 `selftest-report.json`
-6. 只有以上步骤都通过才上传可下载构建包
+### 4. 重复文件检测
+
+- 自定义最小重复文件大小，默认 100 MB。
+- 先按文件大小筛选候选，再做 SHA-256 全文件哈希。
+- 只有字节级完全一致的文件才归为重复组。
+- 显示理论可回收空间。
+- 第一版只识别、不自动批量删除。
+
+### 5. 更细的应用缓存识别
+
+当前包含：
+
+- 腾讯视频 / 爱奇艺 / 优酷
+- 微信 / Telegram / Discord
+- Chrome / Edge / Firefox
+- NVIDIA / DirectX shader cache
+- Adobe Media Cache / Camera Raw Cache
+- Unreal DerivedDataCache
+- Unity Library 生成缓存
+- npm / pip / Gradle / NuGet / Yarn 缓存
+- Hugging Face / Torch 模型缓存
+- Windows Update / Delivery Optimization 缓存
+- Steam / Epic 游戏资源
+- Maya / ZBrush / Substance / Houdini / Unreal / Unity / MetaHuman / XGen / Mari 工程
+- AI 模型权重（safetensors / gguf / ckpt / pth / onnx 等）
+
+识别顺序刻意采用：**明确软件目录 > 文件内容语义 > 通用 Cache/Temp 路径**，避免把临时目录里的 3D 工程或视频误判成普通缓存。
+
+### 6. 安全迁移
+
+大文件、大文件夹、长期未使用文件均可使用“迁移到…”：
+
+- 同盘：直接移动。
+- 跨盘：先复制全部内容并校验文件大小，再删除源。
+- 如果目标已完整复制但源删除失败，保留两份，不冒险丢数据。
+- 系统关键文件（如 pagefile.sys / hiberfil.sys）禁止迁移。
 
 ## 安全边界
 
-第一版不会自动删除。原因很简单：大型 `.mb/.abc/.vdb/.uasset/.vhdx/.db` 文件都可能存在工程或业务依赖，仅凭“体积很大”无法证明可以删除。
+本工具仍然不会提供“扫描完一键全删”。删除判断需要结合项目依赖、应用状态、云同步规则等上下文。
 
-下一步更值得做的是：重复文件哈希、180/365 天未使用文件、按目录钻取、白名单、迁移到其他盘，以及可选的 AI 二次解释。
+重复文件页同样只负责识别；后续如加入批量删除，会默认进入回收站并提供强确认。
+
+## 构建
+
+项目为 `.NET 8 + WPF`：
+
+```powershell
+dotnet build .\src\Cipanguanli\Cipanguanli.csproj -c Release
+```
+
+发布独立 x64 EXE：
+
+```powershell
+dotnet publish .\src\Cipanguanli\Cipanguanli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+```
+
+## 自动测试
+
+GitHub Actions `windows-latest` 会依次执行：
+
+1. Release Build
+2. xUnit 单元测试
+3. 发布 self-contained EXE
+4. 直接运行打包后的 EXE 功能自测（扫描 / 分类 / 旧文件 / 重复文件 / 迁移）
+5. 直接启动 WPF 主窗口进行 UI smoke test
+6. 两项均通过后才打包 Windows artifact
+
+## 第三方代码
+
+底层 NTFS 实际占用计算方案参考/改编自 MIT 许可的 ValleySoft DiskAnalyzer。详见 `THIRD_PARTY_NOTICES.md`。

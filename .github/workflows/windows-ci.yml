@@ -13,7 +13,7 @@ permissions:
 jobs:
   build-test-publish:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -50,7 +50,7 @@ jobs:
           -p:DebugSymbols=false
           -o .\publish
 
-      - name: Run published EXE self-test on Windows
+      - name: Run published EXE functional self-test on Windows
         shell: pwsh
         run: |
           $exe = Resolve-Path .\publish\Cipanguanli.exe
@@ -65,20 +65,36 @@ jobs:
           $json = Get-Content $report -Raw | ConvertFrom-Json
           if (-not $json.passed) { throw "Self-test report says passed=false" }
 
+      - name: Run published EXE UI smoke-test on Windows
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path .\publish\Cipanguanli.exe
+          $report = Join-Path $PWD "ui-smoke-report.json"
+          $p = Start-Process -FilePath $exe -ArgumentList "--ui-smoke", "--report=$report" -Wait -PassThru
+          if ($p.ExitCode -ne 0) {
+            if (Test-Path $report) { Get-Content $report -Raw }
+            throw "Published EXE UI smoke-test failed with exit code $($p.ExitCode)"
+          }
+          if (!(Test-Path $report)) { throw "ui-smoke-report.json was not produced" }
+          Get-Content $report -Raw
+          $json = Get-Content $report -Raw | ConvertFrom-Json
+          if (-not $json.passed) { throw "UI smoke report says passed=false" }
+
       - name: Package
         shell: pwsh
         run: |
           Copy-Item README.md .\publish\README.md
           Copy-Item THIRD_PARTY_NOTICES.md .\publish\THIRD_PARTY_NOTICES.md
-          Compress-Archive -Path .\publish\* -DestinationPath .\Cipanguanli-win-x64.zip -Force
+          Compress-Archive -Path .\publish\* -DestinationPath .\Cipanguanli-v0.2-win-x64.zip -Force
 
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
         with:
-          name: Cipanguanli-win-x64
+          name: Cipanguanli-v0.2-win-x64
           path: |
-            Cipanguanli-win-x64.zip
+            Cipanguanli-v0.2-win-x64.zip
             selftest-report.json
+            ui-smoke-report.json
             tests/Cipanguanli.Tests/TestResults/test-results.trx
           if-no-files-found: error
           retention-days: 30

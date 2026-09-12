@@ -9,6 +9,8 @@ public sealed class FileClassifierTests
     [InlineData(@"D:\Projects\Maya\Hero\hero.mb", "3D")]
     [InlineData(@"D:\AI\models\qwen.gguf", "AI 模型")]
     [InlineData(@"D:\Movies\demo.mkv", "视频")]
+    [InlineData(@"C:\Users\me\AppData\Local\NVIDIA\DXCache\cache.bin", "显卡")]
+    [InlineData(@"D:\UE\DerivedDataCache\abc.bin", "Unreal")]
     public void ClassifiesCommonLargeFiles(string path, string expected)
     {
         var result = FileClassifier.ClassifyFile(path);
@@ -24,9 +26,9 @@ public sealed class FileClassifierTests
     }
 
     [Fact]
-    public void DetectsThreeDFolderByContentSignature()
+    public void DetectsThreeDFolderByContentSignatureEvenUnderTemp()
     {
-        var result = FileClassifier.ClassifyFolder(@"D:\Work\Hero", 1000, 800, 0, 0, 0);
+        var result = FileClassifier.ClassifyFolder(@"C:\Users\me\AppData\Local\Temp\Work\Hero", 1000, 800, 0, 0, 0);
         Assert.Contains("3D", result.Category);
         Assert.False(result.CleanupCandidate);
     }

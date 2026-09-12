@@ -33,32 +33,47 @@ public sealed class DiskScanner
         long thresholdBytes,
         IProgress<ScanProgress>? progress = null,
         CancellationToken cancellationToken = default)
+        => ScanAsync(roots, thresholdBytes, 180, 1L * 1024 * 1024 * 1024, progress, cancellationToken);
+
+    public Task<ScanResult> ScanAsync(
+        IEnumerable<string> roots,
+        long thresholdBytes,
+        int oldFileDays,
+        long oldFileMinimumBytes,
+        IProgress<ScanProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         if (thresholdBytes <= 0) throw new ArgumentOutOfRangeException(nameof(thresholdBytes));
+        if (oldFileDays <= 0) throw new ArgumentOutOfRangeException(nameof(oldFileDays));
+        if (oldFileMinimumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(oldFileMinimumBytes));
+
         var normalizedRoots = roots
             .Where(p => !string.IsNullOrWhiteSpace(p))
             .Select(NormalizeRoot)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
-
         if (normalizedRoots.Length == 0) throw new ArgumentException("At least one scan root is required.", nameof(roots));
-        return Task.Run(() => Scan(normalizedRoots, thresholdBytes, progress, cancellationToken), cancellationToken);
+        return Task.Run(() => Scan(normalizedRoots, thresholdBytes, oldFileDays, oldFileMinimumBytes, progress, cancellationToken), cancellationToken);
     }
 
     private static ScanResult Scan(
         IReadOnlyList<string> roots,
         long thresholdBytes,
+        int oldFileDays,
+        long oldFileMinimumBytes,
         IProgress<ScanProgress>? progress,
         CancellationToken cancellationToken)
     {
         var sw = Stopwatch.StartNew();
         var files = new List<LargeFileEntry>();
+        var oldFiles = new List<OldFileEntry>();
         var nodes = new Dictionary<string, FolderNode>(StringComparer.OrdinalIgnoreCase);
         long filesSeen = 0;
         long bytesSeen = 0;
         long skippedDirectories = 0;
         long largeFilesFound = 0;
         var lastProgress = Stopwatch.StartNew();
+        var oldCutoff = DateTime.Now.AddDays(-oldFileDays);
 
         foreach (var root in roots)
         {
@@ -103,14 +118,8 @@ public sealed class DiskScanner
                             attributes = file.Attributes;
                             lastWrite = file.LastWriteTime;
                         }
-                        catch (IOException)
-                        {
-                            continue;
-                        }
-                        catch (UnauthorizedAccessException)
-                        {
-                            continue;
-                        }
+                        catch (IOException) { continue; }
+                        catch (UnauthorizedAccessException) { continue; }
 
                         filesSeen++;
                         bytesSeen += size;
@@ -126,9 +135,10 @@ public sealed class DiskScanner
                             if (FileClassifier.IsAiModelExtension(extension)) currentNode.AiModelBytes += size;
                         }
 
+                        FileAnnotation? annotation = null;
                         if (size >= thresholdBytes)
                         {
-                            var annotation = FileClassifier.ClassifyFile(file.FullName);
+                            annotation = FileClassifier.ClassifyFile(file.FullName);
                             files.Add(new LargeFileEntry
                             {
                                 Name = file.Name,
@@ -143,6 +153,21 @@ public sealed class DiskScanner
                             largeFilesFound++;
                         }
 
+                        if (size >= oldFileMinimumBytes && lastWrite <= oldCutoff)
+                        {
+                            annotation ??= FileClassifier.ClassifyFile(file.FullName);
+                            oldFiles.Add(new OldFileEntry
+                            {
+                                Name = file.Name,
+                                Path = file.FullName,
+                                SizeBytes = size,
+                                LastModified = lastWrite,
+                                Category = annotation.Category,
+                                Risk = annotation.Risk,
+                                Note = $"超过 {oldFileDays} 天未修改。{annotation.Note}"
+                            });
+                        }
+
                         if (filesSeen % 1500 == 0 || lastProgress.ElapsedMilliseconds >= 250)
                         {
                             progress?.Report(new ScanProgress(filesSeen, bytesSeen, largeFilesFound, skippedDirectories, currentPath));
@@ -150,18 +175,9 @@ public sealed class DiskScanner
                         }
                     }
                 }
-                catch (UnauthorizedAccessException)
-                {
-                    skippedDirectories++;
-                }
-                catch (IOException)
-                {
-                    skippedDirectories++;
-                }
-                catch (System.Security.SecurityException)
-                {
-                    skippedDirectories++;
-                }
+                catch (UnauthorizedAccessException) { skippedDirectories++; }
+                catch (IOException) { skippedDirectories++; }
+                catch (System.Security.SecurityException) { skippedDirectories++; }
             }
         }
 
@@ -185,34 +201,32 @@ public sealed class DiskScanner
         var folderThreshold = Math.Max(1L, thresholdBytes / 2);
         var folders = nodes.Values
             .Where(n => n.TotalBytes >= folderThreshold && !IsRoot(n.Path, n.Root))
-            .Select(n =>
-            {
-                var info = FileClassifier.ClassifyFolder(n.Path, n.TotalBytes, n.ThreeDBytes, n.VideoBytes, n.ArchiveBytes, n.AiModelBytes);
-                return new FolderSummary
-                {
-                    Path = n.Path,
-                    SizeBytes = n.TotalBytes,
-                    FileCount = n.TotalFileCount,
-                    Category = info.Category,
-                    Risk = info.Risk,
-                    Note = info.Note,
-                    ReviewForCleanup = info.CleanupCandidate
-                };
-            })
+            .Select(ToFolderSummary)
             .OrderByDescending(x => x.SizeBytes)
-            .Take(1000)
+            .Take(1500)
             .ToList();
 
         files.Sort((a, b) => b.SizeBytes.CompareTo(a.SizeBytes));
-        var cleanup = folders.Where(f => f.ReviewForCleanup).OrderByDescending(f => f.SizeBytes).Take(300).ToList();
+        oldFiles.Sort((a, b) => b.SizeBytes.CompareTo(a.SizeBytes));
+        if (oldFiles.Count > 2000) oldFiles.RemoveRange(2000, oldFiles.Count - 2000);
+        var cleanup = folders.Where(f => f.ReviewForCleanup).OrderByDescending(f => f.SizeBytes).Take(500).ToList();
+        var mapFloor = Math.Max(64L * 1024 * 1024, thresholdBytes / 10);
+        var mapRoots = roots
+            .Where(r => nodes.ContainsKey(r))
+            .Select(r => BuildMapNode(nodes[r], nodes, nodes[r].TotalBytes, mapFloor, 0))
+            .Where(x => x is not null)
+            .Cast<FolderMapNode>()
+            .ToArray();
 
         sw.Stop();
         progress?.Report(new ScanProgress(filesSeen, bytesSeen, largeFilesFound, skippedDirectories, string.Empty));
         return new ScanResult
         {
             LargeFiles = files,
+            OldFiles = oldFiles,
             LargeFolders = folders,
             CleanupCandidates = cleanup,
+            FolderMapRoots = mapRoots,
             FilesSeen = filesSeen,
             BytesSeen = bytesSeen,
             SkippedDirectories = skippedDirectories,
@@ -220,11 +234,63 @@ public sealed class DiskScanner
         };
     }
 
+    private static FolderSummary ToFolderSummary(FolderNode n)
+    {
+        var info = FileClassifier.ClassifyFolder(n.Path, n.TotalBytes, n.ThreeDBytes, n.VideoBytes, n.ArchiveBytes, n.AiModelBytes);
+        return new FolderSummary
+        {
+            Path = n.Path,
+            SizeBytes = n.TotalBytes,
+            FileCount = n.TotalFileCount,
+            Category = info.Category,
+            Risk = info.Risk,
+            Note = info.Note,
+            ReviewForCleanup = info.CleanupCandidate
+        };
+    }
+
+    private static FolderMapNode? BuildMapNode(
+        FolderNode node,
+        IReadOnlyDictionary<string, FolderNode> nodes,
+        long rootBytes,
+        long floorBytes,
+        int depth)
+    {
+        if (node.TotalBytes <= 0) return null;
+        var children = depth >= 5
+            ? Array.Empty<FolderMapNode>()
+            : nodes.Values
+                .Where(x => string.Equals(x.ParentPath, node.Path, StringComparison.OrdinalIgnoreCase) && x.TotalBytes >= floorBytes)
+                .OrderByDescending(x => x.TotalBytes)
+                .Take(40)
+                .Select(x => BuildMapNode(x, nodes, rootBytes, floorBytes, depth + 1))
+                .Where(x => x is not null)
+                .Cast<FolderMapNode>()
+                .ToArray();
+
+        var info = FileClassifier.ClassifyFolder(node.Path, node.TotalBytes, node.ThreeDBytes, node.VideoBytes, node.ArchiveBytes, node.AiModelBytes);
+        return new FolderMapNode
+        {
+            Name = IsRoot(node.Path, node.Root) ? node.Path : new DirectoryInfo(node.Path).Name,
+            Path = node.Path,
+            SizeBytes = node.TotalBytes,
+            SharePercent = rootBytes > 0 ? node.TotalBytes * 100d / rootBytes : 0,
+            Category = info.Category,
+            Risk = info.Risk,
+            Children = children
+        };
+    }
+
     private static void EnsureNode(Dictionary<string, FolderNode> nodes, string path, string? parent, string root)
     {
         var normalized = NormalizeRoot(path);
         if (nodes.ContainsKey(normalized)) return;
-        nodes[normalized] = new FolderNode { Path = normalized, ParentPath = parent is null ? null : NormalizeRoot(parent), Root = NormalizeRoot(root) };
+        nodes[normalized] = new FolderNode
+        {
+            Path = normalized,
+            ParentPath = parent is null ? null : NormalizeRoot(parent),
+            Root = NormalizeRoot(root)
+        };
     }
 
     private static string NormalizeRoot(string path)
