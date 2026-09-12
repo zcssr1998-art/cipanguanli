@@ -15,17 +15,11 @@ public partial class CDriveWindow : Window
     private CancellationTokenSource? _analysisCts;
     private CancellationTokenSource? _monitorCts;
     private CDriveReport? _report;
-    private CDriveTargetPlan? _targetPlan;
 
-    public CDriveWindow()
-    {
-        InitializeComponent();
-    }
+    public CDriveWindow() => InitializeComponent();
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
-    {
-        AdminStatusText.Text = IsAdministrator() ? "管理员：已开启" : "管理员：未开启";
-    }
+        => AdminStatusText.Text = IsAdministrator() ? "管理员：已开启" : "管理员：未开启";
 
     private async void Analyze_Click(object sender, RoutedEventArgs e)
     {
@@ -35,17 +29,14 @@ public partial class CDriveWindow : Window
         CancelButton.IsEnabled = true;
         BusyProgress.Visibility = Visibility.Visible;
         ClearReport();
-        var progress = new Progress<string>(text => StatusText.Text = text);
         try
         {
-            _report = await _analyzer.AnalyzeAsync("C:\\", includeSystemCommands: true, progress, _analysisCts.Token);
+            var progress = new Progress<string>(text => StatusText.Text = text);
+            _report = await _analyzer.AnalyzeAsync("C:\\", true, progress, _analysisCts.Token);
             BindReport(_report);
-            StatusText.Text = $"C盘体检完成：专项 { _report.Findings.Count:N0 } 项，AppData 大目录 { _report.AppDataEntries.Count:N0 } 项，虚拟磁盘 { _report.VirtualDisks.Count:N0 } 个。";
+            StatusText.Text = $"C盘体检完成：专项 {_report.Findings.Count:N0} 项，AppData 大目录 {_report.AppDataEntries.Count:N0} 项，虚拟磁盘 {_report.VirtualDisks.Count:N0} 个。";
         }
-        catch (OperationCanceledException)
-        {
-            StatusText.Text = "C盘体检已取消。";
-        }
+        catch (OperationCanceledException) { StatusText.Text = "C盘体检已取消。"; }
         catch (Exception ex)
         {
             StatusText.Text = "C盘体检失败。";
@@ -93,14 +84,12 @@ public partial class CDriveWindow : Window
 
     private async void ExecuteFinding_Click(object sender, RoutedEventArgs e)
     {
-        if (FindingsGrid.SelectedItem is not CDriveFinding item) return;
-        await ExecuteFindingAsync(item);
+        if (FindingsGrid.SelectedItem is CDriveFinding item) await ExecuteFindingAsync(item);
     }
 
     private async void ExecutePlanItem_Click(object sender, RoutedEventArgs e)
     {
-        if (TargetPlanGrid.SelectedItem is not CDriveFinding item) return;
-        await ExecuteFindingAsync(item);
+        if (TargetPlanGrid.SelectedItem is CDriveFinding item) await ExecuteFindingAsync(item);
     }
 
     private async Task ExecuteFindingAsync(CDriveFinding item)
@@ -111,10 +100,7 @@ public partial class CDriveWindow : Window
                 $"休眠文件当前约 {item.SizeText}。\n\n【是】改为 reduced：通常保留快速启动，但关闭完整休眠。\n【否】完全关闭休眠：释放更多空间，但休眠与快速启动可能受影响。\n【取消】不操作。",
                 "休眠文件设置", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
             if (answer == MessageBoxResult.Cancel) return;
-            try
-            {
-                StatusText.Text = await WindowsMaintenanceService.ConfigureHibernationAsync(answer == MessageBoxResult.Yes);
-            }
+            try { StatusText.Text = await WindowsMaintenanceService.ConfigureHibernationAsync(answer == MessageBoxResult.Yes); }
             catch (Exception ex) { MessageBox.Show(this, ex.Message, "休眠设置失败"); }
             return;
         }
@@ -123,14 +109,8 @@ public partial class CDriveWindow : Window
             ? $"【{item.Name}】属于保护/高风险区域。软件不会直接删除，只会打开官方管理入口或系统设置。继续？"
             : $"准备对【{item.Name}】执行：{item.RecommendedAction}\n\n预计可释放：{item.ReclaimableText}\n安全分：{item.SafetyText}\n\n继续？";
         if (MessageBox.Show(this, warning, "确认操作", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
-        try
-        {
-            StatusText.Text = await WindowsMaintenanceService.ExecuteAsync(item);
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, ex.Message, "系统操作失败", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        try { StatusText.Text = await WindowsMaintenanceService.ExecuteAsync(item); }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "系统操作失败", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
 
     private async void QuarantineFinding_Click(object sender, RoutedEventArgs e)
@@ -138,23 +118,18 @@ public partial class CDriveWindow : Window
         if (FindingsGrid.SelectedItem is not CDriveFinding item) return;
         if (!item.CanQuarantine || item.IsProtected)
         {
-            MessageBox.Show(this, "这个项目不允许整项隔离。请使用官方管理入口或打开目录逐项判断。", "安全保护", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, "这个项目不允许整项隔离。请使用官方管理入口或打开目录逐项判断。", "安全保护");
             return;
         }
-        if (MessageBox.Show(this,
-                $"把【{item.Name}】移动到 Cipanguanli 隔离区？\n\n路径：{item.Path}\n占用：{item.SizeText}\n\n相关软件应先关闭。隔离后可在主界面恢复。",
-                "进入隔离区", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+        if (MessageBox.Show(this, $"把【{item.Name}】移动到可恢复隔离区？\n\n{item.Path}\n{item.SizeText}", "进入隔离区", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
         try
         {
             BusyProgress.Visibility = Visibility.Visible;
             var progress = new Progress<MigrationProgress>(p => StatusText.Text = $"隔离中：{p.CopiedFiles:N0} 个文件 / {SizeFormatter.Format(p.CopiedBytes)} · {p.CurrentPath}");
             await _quarantine.QuarantineAsync(item.Path, progress);
-            StatusText.Text = "隔离完成。建议重新进行 C 盘体检确认空间变化。";
+            StatusText.Text = "隔离完成；建议重新体检确认空间变化。";
         }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, ex.Message, "隔离失败", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "隔离失败", MessageBoxButton.OK, MessageBoxImage.Error); }
         finally { BusyProgress.Visibility = Visibility.Collapsed; }
     }
 
@@ -170,36 +145,26 @@ public partial class CDriveWindow : Window
 
     private async void DockerReport_Click(object sender, RoutedEventArgs e)
     {
-        var item = ActionOnly("docker", "Docker 空间报告", "docker-prune-review");
-        try { StatusText.Text = await WindowsMaintenanceService.ExecuteAsync(item); }
+        try { StatusText.Text = await WindowsMaintenanceService.ExecuteAsync(ActionOnly("docker-prune-review")); }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Docker"); }
     }
 
     private async void WslReport_Click(object sender, RoutedEventArgs e)
     {
-        var item = ActionOnly("wsl", "WSL 状态", "wsl-review");
-        try { StatusText.Text = await WindowsMaintenanceService.ExecuteAsync(item); }
+        try { StatusText.Text = await WindowsMaintenanceService.ExecuteAsync(ActionOnly("wsl-review")); }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "WSL"); }
     }
 
-    private void BuildTargetPlan_Click(object sender, RoutedEventArgs e) => BuildPlan(emergency: false);
-    private void BuildEmergencyPlan_Click(object sender, RoutedEventArgs e) => BuildPlan(emergency: true);
+    private void BuildTargetPlan_Click(object sender, RoutedEventArgs e) => BuildPlan(false);
+    private void BuildEmergencyPlan_Click(object sender, RoutedEventArgs e) => BuildPlan(true);
 
     private void BuildPlan(bool emergency)
     {
-        if (_report is null)
-        {
-            MessageBox.Show(this, "先执行一次 C 盘体检。", "目标式清理");
-            return;
-        }
-        if (!TryReadGb(TargetGbBox.Text, out var targetBytes))
-        {
-            MessageBox.Show(this, "目标请输入大于 0 的 GB，例如 50。", "目标式清理");
-            return;
-        }
-        _targetPlan = CDriveTargetPlanner.Build(_report.Findings, targetBytes, emergency);
-        TargetPlanGrid.ItemsSource = _targetPlan.Items;
-        TargetPlanText.Text = $"{_targetPlan.Mode}：{_targetPlan.Summary} 风险惩罚分 {_targetPlan.RiskPenalty:N0}；共 {_targetPlan.Items.Count:N0} 项。";
+        if (_report is null) { MessageBox.Show(this, "先执行一次 C 盘体检。", "目标式清理"); return; }
+        if (!TryReadGb(TargetGbBox.Text, out var targetBytes)) { MessageBox.Show(this, "目标请输入大于 0 的 GB，例如 50。", "目标式清理"); return; }
+        var plan = CDriveTargetPlanner.Build(_report.Findings, targetBytes, emergency);
+        TargetPlanGrid.ItemsSource = plan.Items;
+        TargetPlanText.Text = $"{plan.Mode}：{plan.Summary} 风险惩罚分 {plan.RiskPenalty:N0}；共 {plan.Items.Count:N0} 项。";
     }
 
     private async void StartMonitor_Click(object sender, RoutedEventArgs e)
@@ -207,31 +172,20 @@ public partial class CDriveWindow : Window
         if (_monitorCts is not null) return;
         if (!CDriveWriteMonitor.IsElevated)
         {
-            var answer = MessageBox.Show(this, "实时写入来源追踪使用 Windows Kernel ETW，需要管理员权限。是否以管理员模式重新打开 C盘专清？", "需要管理员权限", MessageBoxButton.YesNo, MessageBoxImage.Information);
-            if (answer == MessageBoxResult.Yes) RelaunchAsAdmin();
+            if (MessageBox.Show(this, "实时写入追踪需要管理员权限。是否以管理员模式重新打开 C盘专清？", "需要管理员权限", MessageBoxButton.YesNo) == MessageBoxResult.Yes) RelaunchAsAdmin();
             return;
         }
-
         _monitorCts = new CancellationTokenSource();
         StartMonitorButton.IsEnabled = false;
         StopMonitorButton.IsEnabled = true;
-        WriteStatusText.Text = "正在追踪 C盘写入；建议此时正常使用电脑 5–30 分钟，观察谁持续写盘。";
         var progress = new Progress<IReadOnlyList<CDriveWriteActivityEntry>>(items =>
         {
             WriteActivityGrid.ItemsSource = items;
-            var total = items.Sum(x => x.BytesWritten);
-            WriteStatusText.Text = $"已捕获进程 {items.Count:N0} 个；当前累计写入约 {SizeFormatter.Format(total)}。";
+            WriteStatusText.Text = $"已捕获 {items.Count:N0} 个进程；累计写入约 {SizeFormatter.Format(items.Sum(x => x.BytesWritten))}。";
         });
-
-        try
-        {
-            await _writeMonitor.MonitorAsync(progress, _monitorCts.Token);
-        }
+        try { await _writeMonitor.MonitorAsync(progress, _monitorCts.Token); }
         catch (OperationCanceledException) { }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, ex.Message, "实时写入追踪失败", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "实时写入追踪失败", MessageBoxButton.OK, MessageBoxImage.Error); }
         finally
         {
             _monitorCts?.Dispose();
@@ -243,9 +197,7 @@ public partial class CDriveWindow : Window
     }
 
     private void StopMonitor_Click(object sender, RoutedEventArgs e) => _monitorCts?.Cancel();
-
     private void OpenStorage_Click(object sender, RoutedEventArgs e) => WindowsMaintenanceService.OpenStorageSettings();
-
     private void RelaunchAdmin_Click(object sender, RoutedEventArgs e) => RelaunchAsAdmin();
 
     private void RelaunchAsAdmin()
@@ -260,21 +212,11 @@ public partial class CDriveWindow : Window
         catch { }
     }
 
-    private static CDriveFinding ActionOnly(string id, string name, string actionKey) => new()
+    private static CDriveFinding ActionOnly(string actionKey) => new()
     {
-        Id = id,
-        Name = name,
-        Category = "工具",
-        Path = string.Empty,
-        SizeBytes = 0,
-        ReclaimableBytes = 0,
-        SafetyScore = 90,
-        Risk = "低",
-        Detail = string.Empty,
-        RecommendedAction = string.Empty,
-        ActionKey = actionKey,
-        CanQuarantine = false,
-        IsProtected = false
+        Id = actionKey, Name = actionKey, Category = "工具", Path = string.Empty, SizeBytes = 0,
+        ReclaimableBytes = 0, SafetyScore = 90, Risk = "低", Detail = string.Empty,
+        RecommendedAction = string.Empty, ActionKey = actionKey, CanQuarantine = false, IsProtected = false
     };
 
     private static void Reveal(string path)
@@ -291,8 +233,7 @@ public partial class CDriveWindow : Window
     private static bool TryReadGb(string text, out long bytes)
     {
         bytes = 0;
-        if (!double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.CurrentCulture, out var value) &&
-            !double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value)) return false;
+        if (!double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.CurrentCulture, out var value) && !double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value)) return false;
         if (value <= 0 || value > 100_000) return false;
         bytes = (long)(value * 1024d * 1024 * 1024);
         return bytes > 0;
