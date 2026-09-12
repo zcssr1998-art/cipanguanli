@@ -65,6 +65,21 @@ jobs:
           $json = Get-Content $report -Raw | ConvertFrom-Json
           if (-not $json.passed) { throw "Self-test report says passed=false" }
 
+      - name: Run real C drive non-destructive smoke-test on Windows
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path .\publish\Cipanguanli.exe
+          $report = Join-Path $PWD "cdrive-selftest-report.json"
+          $p = Start-Process -FilePath $exe -ArgumentList "--c-drive-self-test", "--report=$report" -Wait -PassThru
+          if ($p.ExitCode -ne 0) {
+            if (Test-Path $report) { Get-Content $report -Raw }
+            throw "C drive self-test failed with exit code $($p.ExitCode)"
+          }
+          if (!(Test-Path $report)) { throw "cdrive-selftest-report.json was not produced" }
+          Get-Content $report -Raw
+          $json = Get-Content $report -Raw | ConvertFrom-Json
+          if (-not $json.passed) { throw "C drive self-test report says passed=false" }
+
       - name: Run published EXE UI smoke-test on Windows
         shell: pwsh
         run: |
@@ -94,6 +109,7 @@ jobs:
           path: |
             Cipanguanli-v0.4-win-x64.zip
             selftest-report.json
+            cdrive-selftest-report.json
             ui-smoke-report.json
             tests/Cipanguanli.Tests/TestResults/test-results.trx
           if-no-files-found: error
