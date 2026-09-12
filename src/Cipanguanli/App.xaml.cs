@@ -15,6 +15,14 @@ public partial class App : Application
         var reportArg = e.Args.FirstOrDefault(a => a.StartsWith("--report=", StringComparison.OrdinalIgnoreCase));
         if (reportArg is not null) reportPath = reportArg["--report=".Length..].Trim('"');
 
+        if (e.Args.Any(a => a.Equals("--c-drive-self-test", StringComparison.OrdinalIgnoreCase)))
+        {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            var passed = await CDriveSelfTest.RunAsync(reportPath);
+            Shutdown(passed ? 0 : 1);
+            return;
+        }
+
         if (e.Args.Any(a => a.Equals("--self-test", StringComparison.OrdinalIgnoreCase)))
         {
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
