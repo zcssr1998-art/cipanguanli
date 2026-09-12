@@ -10,7 +10,7 @@ public static class CDriveTargetPlanner
             ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "storage-settings", "disk-cleanup", "component-cleanup", "quarantine",
-                "open-location", "docker-prune-review"
+                "docker-prune-review"
             }
             : null;
 
