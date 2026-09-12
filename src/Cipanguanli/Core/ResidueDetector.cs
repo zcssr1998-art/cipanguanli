@@ -17,18 +17,27 @@ public static class ResidueDetector
             if (IsProtectedCategory(folder.Category)) continue;
 
             var lower = folder.Path.Replace('/', '\\').ToLowerInvariant();
-            var appDataLike = lower.Contains("\\appdata\\local\\") || lower.Contains("\\appdata\\roaming\\") ||
-                              lower.Contains("\\programdata\\") || lower.Contains("\\localappdata\\");
-            var cacheLike = lower.Contains("\\cache\\") || lower.Contains("\\caches\\") ||
-                            lower.Contains("\\temp\\") || folder.Category.Contains("缓存", StringComparison.Ordinal);
+            var leaf = SafeLeaf(folder.Path).ToLowerInvariant();
+
+            // Do not mark every descendant of the system TEMP tree as a cache just because
+            // an ancestor happens to be named Temp. The folder itself must have an app-data
+            // or cache-like identity. This materially reduces false positives on real machines.
+            var appDataLike = lower.Contains("\\appdata\\local\\") ||
+                              lower.Contains("\\appdata\\roaming\\") ||
+                              lower.Contains("\\programdata\\") ||
+                              lower.Contains("\\localappdata\\");
+            var cacheLeaf = IsCacheLeaf(leaf);
+            var genericContainer = leaf is "appdata" or "local" or "roaming" or "programdata" or "temp" or "tmp";
+            if (genericContainer) continue;
+
             var old = DaysSinceWrite(folder.Path) >= 120;
-            if (!appDataLike && !cacheLike) continue;
-            if (!old && !cacheLike) continue;
+            if (!appDataLike && !cacheLeaf) continue;
+            if (!old && !cacheLeaf) continue;
 
             var confidence = 45;
             var reasons = new List<string>();
             if (appDataLike) { confidence += 12; reasons.Add("位于应用数据/ProgramData 区域"); }
-            if (cacheLike) { confidence += 18; reasons.Add("路径/分类具有缓存特征"); }
+            if (cacheLeaf) { confidence += 18; reasons.Add("当前文件夹本身具有缓存/日志特征"); }
             if (old) { confidence += 12; reasons.Add("超过 120 天未修改"); }
             if (folder.SizeBytes >= 5L * 1024 * 1024 * 1024) { confidence += 5; reasons.Add("占用较大"); }
             confidence = Math.Min(confidence, 92);
@@ -50,6 +59,20 @@ public static class ResidueDetector
             .ThenByDescending(x => x.SizeBytes)
             .Take(200)
             .ToArray();
+    }
+
+    private static bool IsCacheLeaf(string leaf)
+    {
+        if (leaf is "cache" or "caches" or ".cache" or "shadercache" or "shadercache2" or
+            "deriveddatacache" or "mediacache" or "media cache" or "logs" or "log") return true;
+        return leaf.EndsWith("cache", StringComparison.OrdinalIgnoreCase) ||
+               leaf.EndsWith("cache2", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string SafeLeaf(string path)
+    {
+        try { return new DirectoryInfo(path).Name; }
+        catch { return Path.GetFileName(path.TrimEnd('\\', '/')); }
     }
 
     private static IReadOnlyList<ResidueCandidate> RemoveNestedDuplicates(IEnumerable<ResidueCandidate> input)
