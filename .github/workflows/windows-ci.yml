@@ -1,0 +1,84 @@
+name: Windows CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-publish:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        shell: pwsh
+        run: |
+          dotnet restore .\src\Cipanguanli\Cipanguanli.csproj
+          dotnet restore .\tests\Cipanguanli.Tests\Cipanguanli.Tests.csproj
+
+      - name: Build
+        shell: pwsh
+        run: dotnet build .\src\Cipanguanli\Cipanguanli.csproj -c Release --no-restore
+
+      - name: Unit tests
+        shell: pwsh
+        run: dotnet test .\tests\Cipanguanli.Tests\Cipanguanli.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=test-results.trx"
+
+      - name: Publish self-contained EXE
+        shell: pwsh
+        run: >-
+          dotnet publish .\src\Cipanguanli\Cipanguanli.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:DebugType=None
+          -p:DebugSymbols=false
+          -o .\publish
+
+      - name: Run published EXE self-test on Windows
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path .\publish\Cipanguanli.exe
+          $report = Join-Path $PWD "selftest-report.json"
+          $p = Start-Process -FilePath $exe -ArgumentList "--self-test", "--report=$report" -Wait -PassThru
+          if ($p.ExitCode -ne 0) {
+            if (Test-Path $report) { Get-Content $report -Raw }
+            throw "Published EXE self-test failed with exit code $($p.ExitCode)"
+          }
+          if (!(Test-Path $report)) { throw "selftest-report.json was not produced" }
+          Get-Content $report -Raw
+          $json = Get-Content $report -Raw | ConvertFrom-Json
+          if (-not $json.passed) { throw "Self-test report says passed=false" }
+
+      - name: Package
+        shell: pwsh
+        run: |
+          Copy-Item README.md .\publish\README.md
+          Copy-Item THIRD_PARTY_NOTICES.md .\publish\THIRD_PARTY_NOTICES.md
+          Compress-Archive -Path .\publish\* -DestinationPath .\Cipanguanli-win-x64.zip -Force
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cipanguanli-win-x64
+          path: |
+            Cipanguanli-win-x64.zip
+            selftest-report.json
+            tests/Cipanguanli.Tests/TestResults/test-results.trx
+          if-no-files-found: error
+          retention-days: 30
