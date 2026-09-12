@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using Cipanguanli.Core;
 
@@ -11,7 +12,7 @@ public partial class App : Application
 
         if (e.Args.Any(a => a.Equals("--self-test", StringComparison.OrdinalIgnoreCase)))
         {
-            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown;
             var reportPath = Path.Combine(Environment.CurrentDirectory, "selftest-report.json");
             var reportArg = e.Args.FirstOrDefault(a => a.StartsWith("--report=", StringComparison.OrdinalIgnoreCase));
             if (reportArg is not null) reportPath = reportArg["--report=".Length..].Trim('"');
