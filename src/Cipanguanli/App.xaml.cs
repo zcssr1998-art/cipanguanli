@@ -28,20 +28,41 @@ public partial class App : Application
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
             try
             {
-                var window = new MainWindow();
-                MainWindow = window;
-                window.Show();
-                await Task.Delay(900);
-                window.Close();
-                await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(new { passed = true, test = "ui-smoke-v0.3" }, new JsonSerializerOptions { WriteIndented = true }));
+                var launcher = new LauncherWindow();
+                MainWindow = launcher;
+                launcher.Show();
+                await Task.Delay(350);
+                launcher.Close();
+
+                var main = new MainWindow();
+                MainWindow = main;
+                main.Show();
+                await Task.Delay(500);
+                main.Close();
+
+                var cdrive = new CDriveWindow();
+                MainWindow = cdrive;
+                cdrive.Show();
+                await Task.Delay(650);
+                cdrive.Close();
+
+                await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(new { passed = true, test = "ui-smoke-v0.4", windows = new[] { "launcher", "main", "c-drive" } }, new JsonSerializerOptions { WriteIndented = true }));
                 Shutdown(0);
             }
             catch (Exception ex)
             {
-                try { await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(new { passed = false, test = "ui-smoke-v0.3", error = ex.ToString() }, new JsonSerializerOptions { WriteIndented = true })); }
+                try { await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(new { passed = false, test = "ui-smoke-v0.4", error = ex.ToString() }, new JsonSerializerOptions { WriteIndented = true })); }
                 catch { }
                 Shutdown(1);
             }
+            return;
+        }
+
+        if (e.Args.Any(a => a.Equals("--c-drive", StringComparison.OrdinalIgnoreCase)))
+        {
+            var cdrive = new CDriveWindow();
+            MainWindow = cdrive;
+            cdrive.Show();
             return;
         }
 
@@ -55,8 +76,16 @@ public partial class App : Application
         var inline = e.Args.FirstOrDefault(a => a.StartsWith("--scan-path=", StringComparison.OrdinalIgnoreCase));
         if (inline is not null) startupPath = inline["--scan-path=".Length..].Trim('"');
 
-        var mainWindow = new MainWindow(startupPath);
-        MainWindow = mainWindow;
-        mainWindow.Show();
+        if (!string.IsNullOrWhiteSpace(startupPath))
+        {
+            var mainWindow = new MainWindow(startupPath);
+            MainWindow = mainWindow;
+            mainWindow.Show();
+            return;
+        }
+
+        var launcherWindow = new LauncherWindow();
+        MainWindow = launcherWindow;
+        launcherWindow.Show();
     }
 }

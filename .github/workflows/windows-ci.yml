@@ -13,7 +13,7 @@ permissions:
 jobs:
   build-test-publish:
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
       - name: Checkout
@@ -85,14 +85,14 @@ jobs:
         run: |
           Copy-Item README.md .\publish\README.md
           Copy-Item THIRD_PARTY_NOTICES.md .\publish\THIRD_PARTY_NOTICES.md
-          Compress-Archive -Path .\publish\* -DestinationPath .\Cipanguanli-v0.3-win-x64.zip -Force
+          Compress-Archive -Path .\publish\* -DestinationPath .\Cipanguanli-v0.4-win-x64.zip -Force
 
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
         with:
-          name: Cipanguanli-v0.3-win-x64
+          name: Cipanguanli-v0.4-win-x64
           path: |
-            Cipanguanli-v0.3-win-x64.zip
+            Cipanguanli-v0.4-win-x64.zip
             selftest-report.json
             ui-smoke-report.json
             tests/Cipanguanli.Tests/TestResults/test-results.trx

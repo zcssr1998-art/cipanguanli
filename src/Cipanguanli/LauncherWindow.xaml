@@ -1,0 +1,32 @@
+<Window x:Class="Cipanguanli.LauncherWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Cipanguanli v0.4" Width="760" Height="470" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen" Background="#FFF4F6F8" FontFamily="Segoe UI">
+    <Grid Margin="22">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="18"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Text="Cipanguanli v0.4" FontSize="28" FontWeight="SemiBold" Foreground="#FF111827"/>
+            <TextBlock Text="先选你现在真正要解决的问题。" FontSize="14" Foreground="#FF6B7280" Margin="0,5,0,0"/>
+        </StackPanel>
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="16"/><ColumnDefinition/></Grid.ColumnDefinitions>
+            <Border Background="White" CornerRadius="10" Padding="24" BorderBrush="#FFD6E4FF" BorderThickness="2">
+                <StackPanel>
+                    <TextBlock Text="C盘专清" FontSize="23" FontWeight="SemiBold" Foreground="#FF1D4ED8"/>
+                    <TextBlock Text="适合：C盘越来越小、AppData暴涨、WinSxS/Installer看不懂、WSL/Docker占满、软件装D却写C。" TextWrapping="Wrap" Foreground="#FF4B5563" Margin="0,12,0,18"/>
+                    <TextBlock Text="• 系统专项体检与保护红线&#x0a;• 目标式清理 / 紧急救援&#x0a;• AppData 与“装D写C”&#x0a;• WSL / Docker VHDX&#x0a;• 谁在实时写C盘" Foreground="#FF374151" LineHeight="24"/>
+                    <Button Content="进入 C盘专清" Click="OpenCDrive_Click" Background="#FF2563EB" Foreground="White" Margin="0,24,0,0"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Background="White" CornerRadius="10" Padding="24" BorderBrush="#FFE5E7EB" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="全盘诊断" FontSize="23" FontWeight="SemiBold" Foreground="#FF111827"/>
+                    <TextBlock Text="适合：D/E盘、工程盘、游戏盘，或者全机找大文件、旧文件、重复文件、项目和软件归属。" TextWrapping="Wrap" Foreground="#FF4B5563" Margin="0,12,0,18"/>
+                    <TextBlock Text="• 大文件 / 大文件夹&#x0a;• 空间地图&#x0a;• 软件与项目归属&#x0a;• 重复文件 / 旧文件&#x0a;• 隔离与安全迁移" Foreground="#FF374151" LineHeight="24"/>
+                    <Button Content="进入全盘诊断" Click="OpenMain_Click" Margin="0,24,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

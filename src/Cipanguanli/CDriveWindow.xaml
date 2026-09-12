@@ -1,0 +1,188 @@
+<Window x:Class="Cipanguanli.CDriveWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="C盘专清 - Cipanguanli v0.4" Width="1580" Height="930" MinWidth="1180" MinHeight="740"
+        WindowStartupLocation="CenterScreen" Background="#FFF4F6F8" FontFamily="Segoe UI"
+        Loaded="Window_Loaded" Closing="Window_Closing">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Background="#FF111827" Padding="18,14">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="C盘专清 v0.4" Foreground="White" FontSize="25" FontWeight="SemiBold"/>
+                    <TextBlock Text="系统盘专项体检 · WinSxS/Installer/休眠/VSS · AppData · WSL/Docker · 目标式清理 · 实时写入追踪" Foreground="#FFB9C2CF" Margin="0,4,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="AdminStatusText" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <Button Content="管理员模式" Click="RelaunchAdmin_Click"/>
+                    <Button Content="Windows 存储设置" Click="OpenStorage_Click" Margin="8,0,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Background="White" BorderBrush="#FFE5E7EB" BorderThickness="0,1,0,0" Padding="14,9">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Text="点击“开始 C 盘体检”进行专项分析。" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <ProgressBar x:Name="BusyProgress" Grid.Column="1" Width="220" Height="7" IsIndeterminate="True" Visibility="Collapsed"/>
+            </Grid>
+        </Border>
+
+        <Grid Margin="14">
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="12"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Background="White" CornerRadius="8" Padding="14" BorderBrush="#FFE5E7EB" BorderThickness="1" MinWidth="310">
+                    <StackPanel>
+                        <TextBlock Text="C盘专项控制" FontWeight="SemiBold" FontSize="16"/>
+                        <TextBlock Text="第一原则：先解释，再清理。系统关键目录不提供暴力删除。" Foreground="#FF6B7280" TextWrapping="Wrap" Margin="0,4,0,10"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="AnalyzeButton" Content="开始 C 盘体检" Click="Analyze_Click" Background="#FF2563EB" Foreground="White"/>
+                            <Button x:Name="CancelButton" Content="停止" Click="Cancel_Click" IsEnabled="False"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <UniformGrid Grid.Column="2" Columns="5">
+                    <Border Background="White" CornerRadius="8" Padding="12" BorderBrush="#FFE5E7EB" BorderThickness="1" Margin="0,0,8,0"><StackPanel><TextBlock Text="C盘总容量" Foreground="#FF6B7280"/><TextBlock x:Name="TotalText" Text="-" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel></Border>
+                    <Border Background="White" CornerRadius="8" Padding="12" BorderBrush="#FFE5E7EB" BorderThickness="1" Margin="0,0,8,0"><StackPanel><TextBlock Text="已使用" Foreground="#FF6B7280"/><TextBlock x:Name="UsedText" Text="-" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel></Border>
+                    <Border Background="White" CornerRadius="8" Padding="12" BorderBrush="#FFE5E7EB" BorderThickness="1" Margin="0,0,8,0"><StackPanel><TextBlock Text="剩余空间" Foreground="#FF6B7280"/><TextBlock x:Name="FreeText" Text="-" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel></Border>
+                    <Border Background="White" CornerRadius="8" Padding="12" BorderBrush="#FFE5E7EB" BorderThickness="1" Margin="0,0,8,0"><StackPanel><TextBlock Text="保守可释放" Foreground="#FF6B7280"/><TextBlock x:Name="ConservativeText" Text="-" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel></Border>
+                    <Border Background="White" CornerRadius="8" Padding="12" BorderBrush="#FFE5E7EB" BorderThickness="1"><StackPanel><TextBlock Text="推荐候选上限" Foreground="#FF6B7280"/><TextBlock x:Name="RecommendedText" Text="-" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel></Border>
+                </UniformGrid>
+            </Grid>
+
+            <Border Grid.Row="2" Background="White" CornerRadius="8" BorderBrush="#FFE5E7EB" BorderThickness="1">
+                <TabControl BorderThickness="0">
+                    <TabItem Header="专项体检">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10">
+                                <Button Content="定位" Click="OpenFinding_Click"/>
+                                <Button Content="执行官方/安全动作" Click="ExecuteFinding_Click" Background="#FFEEF2FF"/>
+                                <Button Content="进入隔离区" Click="QuarantineFinding_Click" Background="#FFFFF7ED"/>
+                                <TextBlock Text="红线：WinSxS、Installer、DriverStore、pagefile 等不提供直接删除。" Foreground="#FF6B7280" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            </StackPanel>
+                            <DataGrid x:Name="FindingsGrid" AutoGenerateColumns="False">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="占用" Binding="{Binding SizeText}" SortMemberPath="SizeBytes" Width="100"/>
+                                    <DataGridTextColumn Header="预计可释放" Binding="{Binding ReclaimableText}" SortMemberPath="ReclaimableBytes" Width="110"/>
+                                    <DataGridTextColumn Header="安全分" Binding="{Binding SafetyText}" SortMemberPath="SafetyScore" Width="85"/>
+                                    <DataGridTextColumn Header="类别" Binding="{Binding Category}" Width="135"/>
+                                    <DataGridTextColumn Header="项目" Binding="{Binding Name}" Width="220"/>
+                                    <DataGridTextColumn Header="风险" Binding="{Binding Risk}" Width="145"/>
+                                    <DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="340"/>
+                                    <DataGridTextColumn Header="建议动作" Binding="{Binding RecommendedAction}" Width="260"/>
+                                    <DataGridTextColumn Header="说明" Binding="{Binding Detail}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </TabItem>
+
+                    <TabItem Header="AppData / 装D写C">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10">
+                                <Button Content="打开所选目录" Click="OpenAppData_Click"/>
+                                <TextBlock Text="重点找：程序主体装在 D/E 盘，但缓存、素材、账号数据仍持续写 C 盘。" Foreground="#FF6B7280" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            </StackPanel>
+                            <DataGrid x:Name="AppDataGrid" AutoGenerateColumns="False">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="大小" Binding="{Binding SizeText}" SortMemberPath="SizeBytes" Width="105"/>
+                                    <DataGridTextColumn Header="AppData目录" Binding="{Binding Name}" Width="170"/>
+                                    <DataGridTextColumn Header="推测归属" Binding="{Binding Owner}" Width="220"/>
+                                    <DataGridTextColumn Header="状态" Binding="{Binding InstallState}" Width="190"/>
+                                    <DataGridTextColumn Header="程序安装位置" Binding="{Binding InstallLocation}" Width="360"/>
+                                    <DataGridTextColumn Header="C盘数据位置" Binding="{Binding Path}" Width="380"/>
+                                    <DataGridTextColumn Header="判断" Binding="{Binding Note}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </TabItem>
+
+                    <TabItem Header="WSL / Docker">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10">
+                                <Button Content="定位虚拟磁盘" Click="OpenVirtualDisk_Click"/>
+                                <Button Content="检查 Docker 可回收空间" Click="DockerReport_Click"/>
+                                <Button Content="查看 WSL 状态" Click="WslReport_Click"/>
+                                <TextBlock Text="VHDX 变大后不会总是自动缩回；先清内部数据，再考虑迁移/压缩。" Foreground="#FF6B7280" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            </StackPanel>
+                            <DataGrid x:Name="VirtualDiskGrid" AutoGenerateColumns="False">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="类型" Binding="{Binding Kind}" Width="90"/>
+                                    <DataGridTextColumn Header="大小" Binding="{Binding SizeText}" SortMemberPath="SizeBytes" Width="110"/>
+                                    <DataGridTextColumn Header="文件" Binding="{Binding Name}" Width="150"/>
+                                    <DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="470"/>
+                                    <DataGridTextColumn Header="说明" Binding="{Binding Detail}" Width="430"/>
+                                    <DataGridTextColumn Header="建议" Binding="{Binding RecommendedAction}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </TabItem>
+
+                    <TabItem Header="目标式清理">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Top" Margin="12">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="我想释放" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="TargetGbBox" Text="50" Width="80" Padding="6" Margin="8,0,4,0"/>
+                                    <TextBlock Text="GB" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Button Content="生成最低风险方案" Click="BuildTargetPlan_Click" Background="#FFEEF2FF"/>
+                                    <Button Content="紧急救援模式" Click="BuildEmergencyPlan_Click" Background="#FFFFF7ED"/>
+                                    <Button Content="执行选中项" Click="ExecutePlanItem_Click"/>
+                                </StackPanel>
+                                <TextBlock x:Name="TargetPlanText" Text="目标式清理会优先选择安全分更高、可重建或官方可清理的项目；达不到目标时不会为了凑数去碰高危系统数据。" Foreground="#FF6B7280" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <DataGrid x:Name="TargetPlanGrid" AutoGenerateColumns="False">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="可释放" Binding="{Binding ReclaimableText}" Width="110"/>
+                                    <DataGridTextColumn Header="安全分" Binding="{Binding SafetyText}" Width="90"/>
+                                    <DataGridTextColumn Header="项目" Binding="{Binding Name}" Width="220"/>
+                                    <DataGridTextColumn Header="类别" Binding="{Binding Category}" Width="150"/>
+                                    <DataGridTextColumn Header="建议动作" Binding="{Binding RecommendedAction}" Width="300"/>
+                                    <DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="420"/>
+                                    <DataGridTextColumn Header="说明" Binding="{Binding Detail}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </TabItem>
+
+                    <TabItem Header="空间增长">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="从第二次 C盘体检开始，显示相同专项目录相比上次增长了多少。只列显著增长（≥64MB 且至少约5%）。" Foreground="#FF6B7280" Margin="12" TextWrapping="Wrap"/>
+                            <DataGrid x:Name="GrowthGrid" AutoGenerateColumns="False">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="增长" Binding="{Binding GrowthText}" SortMemberPath="GrowthBytes" Width="115"/>
+                                    <DataGridTextColumn Header="上次" Binding="{Binding PreviousText}" Width="110"/>
+                                    <DataGridTextColumn Header="现在" Binding="{Binding CurrentText}" Width="110"/>
+                                    <DataGridTextColumn Header="项目" Binding="{Binding Name}" Width="220"/>
+                                    <DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </TabItem>
+
+                    <TabItem Header="谁在写C盘">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Top" Margin="10">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button x:Name="StartMonitorButton" Content="开始实时追踪" Click="StartMonitor_Click" Background="#FFEEF2FF"/>
+                                    <Button x:Name="StopMonitorButton" Content="停止追踪" Click="StopMonitor_Click" IsEnabled="False"/>
+                                    <TextBlock x:Name="WriteStatusText" Text="需要管理员权限。使用 Windows Kernel ETW File I/O 事件，按进程累计对系统盘的写入字节。" Foreground="#FF6B7280" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <DataGrid x:Name="WriteActivityGrid" AutoGenerateColumns="False">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="写入量" Binding="{Binding BytesWrittenText}" SortMemberPath="BytesWritten" Width="120"/>
+                                    <DataGridTextColumn Header="进程" Binding="{Binding ProcessName}" Width="180"/>
+                                    <DataGridTextColumn Header="PID" Binding="{Binding ProcessId}" Width="80"/>
+                                    <DataGridTextColumn Header="最近写入路径" Binding="{Binding LastPath}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </TabItem>
+                </TabControl>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>
