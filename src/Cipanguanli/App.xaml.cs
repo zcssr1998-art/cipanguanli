@@ -31,24 +31,31 @@ public partial class App : Application
                 var window = new MainWindow();
                 MainWindow = window;
                 window.Show();
-                await Task.Delay(700);
+                await Task.Delay(900);
                 window.Close();
-                await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(new { passed = true, test = "ui-smoke" }, new JsonSerializerOptions { WriteIndented = true }));
+                await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(new { passed = true, test = "ui-smoke-v0.3" }, new JsonSerializerOptions { WriteIndented = true }));
                 Shutdown(0);
             }
             catch (Exception ex)
             {
-                try
-                {
-                    await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(new { passed = false, test = "ui-smoke", error = ex.ToString() }, new JsonSerializerOptions { WriteIndented = true }));
-                }
+                try { await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(new { passed = false, test = "ui-smoke-v0.3", error = ex.ToString() }, new JsonSerializerOptions { WriteIndented = true })); }
                 catch { }
                 Shutdown(1);
             }
             return;
         }
 
-        var mainWindow = new MainWindow();
+        string? startupPath = null;
+        for (var i = 0; i < e.Args.Length; i++)
+        {
+            if (!e.Args[i].Equals("--scan-path", StringComparison.OrdinalIgnoreCase) || i + 1 >= e.Args.Length) continue;
+            startupPath = e.Args[i + 1].Trim('"');
+            break;
+        }
+        var inline = e.Args.FirstOrDefault(a => a.StartsWith("--scan-path=", StringComparison.OrdinalIgnoreCase));
+        if (inline is not null) startupPath = inline["--scan-path=".Length..].Trim('"');
+
+        var mainWindow = new MainWindow(startupPath);
         MainWindow = mainWindow;
         mainWindow.Show();
     }
