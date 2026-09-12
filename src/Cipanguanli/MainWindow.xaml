@@ -2,21 +2,19 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:core="clr-namespace:Cipanguanli.Core"
-        Title="磁盘管理 - Cipanguanli v0.2" Width="1540" Height="900" MinWidth="1180" MinHeight="720"
+        Title="磁盘管理 - Cipanguanli v0.3" Width="1600" Height="930" MinWidth="1200" MinHeight="740"
         WindowStartupLocation="CenterScreen" Background="#FFF4F6F8" FontFamily="Segoe UI"
         Loaded="Window_Loaded" Closing="Window_Closing">
     <DockPanel>
         <Border DockPanel.Dock="Top" Background="#FF111827" Padding="18,14">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <StackPanel>
-                    <TextBlock Text="磁盘空间管理器 v0.2" Foreground="White" FontSize="24" FontWeight="SemiBold"/>
-                    <TextBlock Text="大文件 · 空间地图 · 旧文件 · 重复文件 · 缓存识别 · 安全迁移" Foreground="#FFB9C2CF" Margin="0,4,0,0"/>
+                    <TextBlock Text="磁盘空间诊断器 v0.3" Foreground="White" FontSize="24" FontWeight="SemiBold"/>
+                    <TextBlock Text="空间地图 · 软件归属 · 安全评分 · 卸载残留 · 增长历史 · 三档清理 · 隔离恢复" Foreground="#FFB9C2CF" Margin="0,4,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="ExplorerMenuButton" Content="安装右键菜单" Click="ExplorerMenuButton_Click" Margin="0,0,10,0"/>
                     <TextBlock x:Name="AdminStatusText" Foreground="#FFD1D5DB" VerticalAlignment="Center" Margin="0,0,10,0"/>
                     <Button x:Name="AdminButton" Content="管理员模式" Click="AdminButton_Click"/>
                 </StackPanel>
@@ -25,27 +23,20 @@
 
         <Border DockPanel.Dock="Bottom" Background="White" BorderBrush="#FFE5E7EB" BorderThickness="0,1,0,0" Padding="14,9">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <TextBlock x:Name="StatusText" Text="就绪" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                 <ProgressBar x:Name="ScanProgress" Grid.Column="1" Width="210" Height="7" IsIndeterminate="True" Visibility="Collapsed"/>
             </Grid>
         </Border>
 
         <Grid Margin="14">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="285"/>
-                <ColumnDefinition Width="14"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="285"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" Background="White" CornerRadius="8" Padding="14" BorderBrush="#FFE5E7EB" BorderThickness="1">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Top">
                         <TextBlock Text="扫描目标" FontWeight="SemiBold" FontSize="16"/>
-                        <TextBlock Text="默认选中固定磁盘，也可以添加指定目录。" Foreground="#FF6B7280" TextWrapping="Wrap" Margin="0,4,0,10"/>
+                        <TextBlock Text="默认选中固定磁盘，也可以添加指定目录。右键菜单可以直接从资源管理器分析某个文件夹。" Foreground="#FF6B7280" TextWrapping="Wrap" Margin="0,4,0,10"/>
                     </StackPanel>
                     <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
                         <Separator Margin="0,3,0,10"/>
@@ -53,28 +44,19 @@
                         <TextBox x:Name="ThresholdBox" Text="5" Margin="0,5,0,8" Padding="8"/>
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                            <StackPanel>
-                                <TextBlock Text="旧文件天数" FontWeight="SemiBold"/>
-                                <TextBox x:Name="OldDaysBox" Text="180" Margin="0,5,0,8" Padding="8"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Text="旧文件最小 GB" FontWeight="SemiBold"/>
-                                <TextBox x:Name="OldMinBox" Text="1" Margin="0,5,0,8" Padding="8"/>
-                            </StackPanel>
+                            <StackPanel><TextBlock Text="旧文件天数" FontWeight="SemiBold"/><TextBox x:Name="OldDaysBox" Text="180" Margin="0,5,0,8" Padding="8"/></StackPanel>
+                            <StackPanel Grid.Column="2"><TextBlock Text="旧文件最小 GB" FontWeight="SemiBold"/><TextBox x:Name="OldMinBox" Text="1" Margin="0,5,0,8" Padding="8"/></StackPanel>
                         </Grid>
                         <Button Content="添加目录" Click="AddFolder_Click" Margin="0,0,0,8"/>
-                        <Button x:Name="StartButton" Content="开始全盘分析" Click="StartScan_Click" Margin="0,0,0,8" Background="#FF2563EB" Foreground="White"/>
+                        <Button x:Name="StartButton" Content="开始诊断" Click="StartScan_Click" Margin="0,0,0,8" Background="#FF2563EB" Foreground="White"/>
                         <Button x:Name="StopButton" Content="停止当前任务" Click="StopScan_Click" IsEnabled="False" Margin="0,0,0,10"/>
-                        <TextBlock Text="迁移采用：同盘直接移动；跨盘先复制并校验大小，再删除源。若删除源失败，会保留两份，不冒险丢数据。" Foreground="#FF6B7280" TextWrapping="Wrap"/>
+                        <TextBlock Text="默认不永久删除。高风险内容优先迁移；可疑清理项建议先进入隔离区，确认无影响后再人工处理。" Foreground="#FF6B7280" TextWrapping="Wrap"/>
                     </StackPanel>
                     <ListBox ItemsSource="{Binding Targets}" BorderThickness="0" Margin="0,8,0,8">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" Margin="0,5">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding Path}" Foreground="#FF6B7280" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="235"/>
-                                    </StackPanel>
+                                    <StackPanel><TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold"/><TextBlock Text="{Binding Path}" Foreground="#FF6B7280" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="235"/></StackPanel>
                                 </CheckBox>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
@@ -83,28 +65,13 @@
             </Border>
 
             <Grid Grid.Column="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="94"/>
-                    <RowDefinition Height="12"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-
+                <Grid.RowDefinitions><RowDefinition Height="94"/><RowDefinition Height="12"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                 <UniformGrid Columns="5">
-                    <Border Background="White" CornerRadius="8" Padding="12" BorderBrush="#FFE5E7EB" BorderThickness="1" Margin="0,0,8,0">
-                        <StackPanel><TextBlock Text="已检查文件" Foreground="#FF6B7280"/><TextBlock x:Name="FilesSeenText" Text="0" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel>
-                    </Border>
-                    <Border Background="White" CornerRadius="8" Padding="12" BorderBrush="#FFE5E7EB" BorderThickness="1" Margin="0,0,8,0">
-                        <StackPanel><TextBlock Text="扫描文件总量" Foreground="#FF6B7280"/><TextBlock x:Name="BytesSeenText" Text="0 B" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel>
-                    </Border>
-                    <Border Background="White" CornerRadius="8" Padding="12" BorderBrush="#FFE5E7EB" BorderThickness="1" Margin="0,0,8,0">
-                        <StackPanel><TextBlock Text="阈值以上大文件" Foreground="#FF6B7280"/><TextBlock x:Name="LargeFilesText" Text="0" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel>
-                    </Border>
-                    <Border Background="White" CornerRadius="8" Padding="12" BorderBrush="#FFE5E7EB" BorderThickness="1" Margin="0,0,8,0">
-                        <StackPanel><TextBlock Text="长期未修改" Foreground="#FF6B7280"/><TextBlock x:Name="OldFilesText" Text="0" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel>
-                    </Border>
-                    <Border Background="White" CornerRadius="8" Padding="12" BorderBrush="#FFE5E7EB" BorderThickness="1">
-                        <StackPanel><TextBlock Text="清理线索" Foreground="#FF6B7280"/><TextBlock x:Name="CleanupText" Text="0" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel>
-                    </Border>
+                    <Border Background="White" CornerRadius="8" Padding="12" BorderBrush="#FFE5E7EB" BorderThickness="1" Margin="0,0,8,0"><StackPanel><TextBlock Text="已检查文件" Foreground="#FF6B7280"/><TextBlock x:Name="FilesSeenText" Text="0" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel></Border>
+                    <Border Background="White" CornerRadius="8" Padding="12" BorderBrush="#FFE5E7EB" BorderThickness="1" Margin="0,0,8,0"><StackPanel><TextBlock Text="扫描文件总量" Foreground="#FF6B7280"/><TextBlock x:Name="BytesSeenText" Text="0 B" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel></Border>
+                    <Border Background="White" CornerRadius="8" Padding="12" BorderBrush="#FFE5E7EB" BorderThickness="1" Margin="0,0,8,0"><StackPanel><TextBlock Text="阈值以上大文件" Foreground="#FF6B7280"/><TextBlock x:Name="LargeFilesText" Text="0" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel></Border>
+                    <Border Background="White" CornerRadius="8" Padding="12" BorderBrush="#FFE5E7EB" BorderThickness="1" Margin="0,0,8,0"><StackPanel><TextBlock Text="长期未修改" Foreground="#FF6B7280"/><TextBlock x:Name="OldFilesText" Text="0" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel></Border>
+                    <Border Background="White" CornerRadius="8" Padding="12" BorderBrush="#FFE5E7EB" BorderThickness="1"><StackPanel><TextBlock Text="清理线索" Foreground="#FF6B7280"/><TextBlock x:Name="CleanupText" Text="0" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0"/></StackPanel></Border>
                 </UniformGrid>
 
                 <Border Grid.Row="2" Background="White" CornerRadius="8" BorderBrush="#FFE5E7EB" BorderThickness="1">
@@ -112,20 +79,25 @@
                         <TabItem Header="大文件">
                             <DockPanel>
                                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10">
-                                    <Button Content="资源管理器定位" Click="OpenSelectedFile_Click"/>
-                                    <Button Content="复制路径" Click="CopySelectedFilePath_Click"/>
-                                    <Button Content="迁移到…" Click="MigrateSelectedFile_Click" Background="#FFF0F9FF"/>
-                                    <Button Content="导出 CSV" Click="ExportFiles_Click"/>
+                                    <Button Content="资源管理器定位" Click="OpenSelectedFile_Click"/><Button Content="复制路径" Click="CopySelectedFilePath_Click"/><Button Content="迁移到…" Click="MigrateSelectedFile_Click" Background="#FFF0F9FF"/><Button Content="进入隔离区" Click="QuarantineSelectedFile_Click" Background="#FFFFF7ED"/><Button Content="导出 CSV" Click="ExportFiles_Click"/>
                                 </StackPanel>
                                 <DataGrid x:Name="LargeFilesGrid" MouseDoubleClick="LargeFilesGrid_MouseDoubleClick" AutoGenerateColumns="False">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="大小" Binding="{Binding SizeText}" SortMemberPath="SizeBytes" Width="95"/>
-                                        <DataGridTextColumn Header="实际占用" Binding="{Binding AllocatedText}" SortMemberPath="AllocatedBytes" Width="95"/>
-                                        <DataGridTextColumn Header="类型/用途" Binding="{Binding Category}" Width="160"/>
-                                        <DataGridTextColumn Header="风险" Binding="{Binding Risk}" Width="95"/>
-                                        <DataGridTextColumn Header="修改时间" Binding="{Binding LastModifiedText}" SortMemberPath="LastModified" Width="130"/>
-                                        <DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="420"/>
-                                        <DataGridTextColumn Header="说明" Binding="{Binding Note}" Width="*"/>
+                                        <DataGridTextColumn Header="大小" Binding="{Binding SizeText}" SortMemberPath="SizeBytes" Width="95"/><DataGridTextColumn Header="实际占用" Binding="{Binding AllocatedText}" SortMemberPath="AllocatedBytes" Width="95"/><DataGridTextColumn Header="类型/用途" Binding="{Binding Category}" Width="160"/><DataGridTextColumn Header="风险" Binding="{Binding Risk}" Width="95"/><DataGridTextColumn Header="修改时间" Binding="{Binding LastModifiedText}" SortMemberPath="LastModified" Width="130"/><DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="420"/><DataGridTextColumn Header="说明" Binding="{Binding Note}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                        </TabItem>
+
+                        <TabItem Header="诊断">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10">
+                                    <Button Content="定位" Click="OpenDiagnostic_Click"/><Button Content="官方卸载/管理" Click="ManageDiagnosticOwner_Click" Background="#FFEEF2FF"/><Button Content="进入隔离区" Click="QuarantineDiagnostic_Click" Background="#FFFFF7ED"/>
+                                    <TextBox x:Name="LearnCategoryBox" Width="130" Margin="8,0,4,0" Padding="6" ToolTip="例如：死亡搁浅素材 / 客户A工程"/><TextBox x:Name="LearnNoteBox" Width="180" Margin="0,0,4,0" Padding="6" ToolTip="备注（可选）"/><Button Content="记住此路径用途" Click="LearnDiagnosticRule_Click"/>
+                                </StackPanel>
+                                <DataGrid x:Name="DiagnosticGrid" AutoGenerateColumns="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="大小" Binding="{Binding SizeText}" Width="95"/><DataGridTextColumn Header="类型" Binding="{Binding Category}" Width="150"/><DataGridTextColumn Header="软件/项目归属" Binding="{Binding Owner}" Width="190"/><DataGridTextColumn Header="来源" Binding="{Binding OwnerSource}" Width="110"/><DataGridTextColumn Header="安全分" Binding="{Binding SafetyText}" Width="80"/><DataGridTextColumn Header="建议动作" Binding="{Binding RecommendedAction}" Width="210"/><DataGridTextColumn Header="压缩收益" Binding="{Binding CompressionEstimate}" Width="130"/><DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="420"/><DataGridTextColumn Header="依赖判断" Binding="{Binding RelationshipHint}" Width="*"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </DockPanel>
@@ -133,26 +105,13 @@
 
                         <TabItem Header="空间地图">
                             <DockPanel>
-                                <TextBlock DockPanel.Dock="Top" Margin="12" Foreground="#FF6B7280" Text="按磁盘/目录层级显示大目录。进度条表示占扫描根目录的比例；为防止界面爆炸，仅展开较大的目录，最多 5 层。" TextWrapping="Wrap"/>
+                                <TextBlock DockPanel.Dock="Top" Margin="12" Foreground="#FF6B7280" Text="按目录层级显示占用。双击打开目录。"/>
                                 <TreeView x:Name="SpaceMapTree" MouseDoubleClick="SpaceMapTree_MouseDoubleClick" BorderThickness="0" Padding="8">
                                     <TreeView.Resources>
                                         <HierarchicalDataTemplate DataType="{x:Type core:FolderMapNode}" ItemsSource="{Binding Children}">
                                             <Grid Margin="2" MinWidth="820">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="300"/>
-                                                    <ColumnDefinition Width="100"/>
-                                                    <ColumnDefinition Width="190"/>
-                                                    <ColumnDefinition Width="150"/>
-                                                    <ColumnDefinition Width="90"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Path}"/>
-                                                <TextBlock Grid.Column="1" Text="{Binding SizeText}" Margin="8,0"/>
-                                                <Grid Grid.Column="2" Margin="8,2">
-                                                    <ProgressBar Maximum="100" Value="{Binding SharePercent}" Height="14"/>
-                                                    <TextBlock Text="{Binding ShareText}" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Grid>
-                                                <TextBlock Grid.Column="3" Text="{Binding Category}" Margin="8,0" TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock Grid.Column="4" Text="{Binding Risk}" Margin="8,0"/>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="100"/><ColumnDefinition Width="190"/><ColumnDefinition Width="150"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Path}"/><TextBlock Grid.Column="1" Text="{Binding SizeText}" Margin="8,0"/><Grid Grid.Column="2" Margin="8,2"><ProgressBar Maximum="100" Value="{Binding SharePercent}" Height="14"/><TextBlock Text="{Binding ShareText}" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid><TextBlock Grid.Column="3" Text="{Binding Category}" Margin="8,0"/><TextBlock Grid.Column="4" Text="{Binding Risk}" Margin="8,0"/>
                                             </Grid>
                                         </HierarchicalDataTemplate>
                                     </TreeView.Resources>
@@ -162,82 +121,64 @@
 
                         <TabItem Header="大文件夹">
                             <DockPanel>
-                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10">
-                                    <Button Content="打开文件夹" Click="OpenSelectedFolder_Click"/>
-                                    <Button Content="复制路径" Click="CopySelectedFolderPath_Click"/>
-                                    <Button Content="迁移到…" Click="MigrateSelectedFolder_Click" Background="#FFF0F9FF"/>
-                                </StackPanel>
-                                <DataGrid x:Name="LargeFoldersGrid" AutoGenerateColumns="False">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="大小" Binding="{Binding SizeText}" SortMemberPath="SizeBytes" Width="100"/>
-                                        <DataGridTextColumn Header="文件数" Binding="{Binding FileCount}" Width="90"/>
-                                        <DataGridTextColumn Header="类型/用途" Binding="{Binding Category}" Width="170"/>
-                                        <DataGridTextColumn Header="风险" Binding="{Binding Risk}" Width="100"/>
-                                        <DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="460"/>
-                                        <DataGridTextColumn Header="说明" Binding="{Binding Note}" Width="*"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10"><Button Content="打开文件夹" Click="OpenSelectedFolder_Click"/><Button Content="复制路径" Click="CopySelectedFolderPath_Click"/><Button Content="迁移到…" Click="MigrateSelectedFolder_Click" Background="#FFF0F9FF"/><Button Content="进入隔离区" Click="QuarantineSelectedFolder_Click" Background="#FFFFF7ED"/></StackPanel>
+                                <DataGrid x:Name="LargeFoldersGrid" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="大小" Binding="{Binding SizeText}" Width="100"/><DataGridTextColumn Header="文件数" Binding="{Binding FileCount}" Width="90"/><DataGridTextColumn Header="类型/用途" Binding="{Binding Category}" Width="170"/><DataGridTextColumn Header="风险" Binding="{Binding Risk}" Width="100"/><DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="460"/><DataGridTextColumn Header="说明" Binding="{Binding Note}" Width="*"/></DataGrid.Columns></DataGrid>
                             </DockPanel>
                         </TabItem>
 
                         <TabItem Header="旧文件">
                             <DockPanel>
-                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10">
-                                    <TextBlock Text="长期未修改 ≠ 可删除；它只用于找出被遗忘的大文件。" Foreground="#FF6B7280" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                    <Button Content="定位" Click="OpenSelectedOldFile_Click"/>
-                                    <Button Content="迁移到…" Click="MigrateSelectedOldFile_Click" Background="#FFF0F9FF"/>
-                                </StackPanel>
-                                <DataGrid x:Name="OldFilesGrid" AutoGenerateColumns="False">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="大小" Binding="{Binding SizeText}" SortMemberPath="SizeBytes" Width="100"/>
-                                        <DataGridTextColumn Header="未修改天数" Binding="{Binding DaysOld}" Width="105"/>
-                                        <DataGridTextColumn Header="类型" Binding="{Binding Category}" Width="160"/>
-                                        <DataGridTextColumn Header="风险" Binding="{Binding Risk}" Width="95"/>
-                                        <DataGridTextColumn Header="最后修改" Binding="{Binding LastModifiedText}" Width="130"/>
-                                        <DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="460"/>
-                                        <DataGridTextColumn Header="说明" Binding="{Binding Note}" Width="*"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10"><TextBlock Text="长期未修改 ≠ 可删除。" Foreground="#FF6B7280" VerticalAlignment="Center" Margin="0,0,12,0"/><Button Content="定位" Click="OpenSelectedOldFile_Click"/><Button Content="迁移到…" Click="MigrateSelectedOldFile_Click" Background="#FFF0F9FF"/><Button Content="进入隔离区" Click="QuarantineSelectedOldFile_Click" Background="#FFFFF7ED"/></StackPanel>
+                                <DataGrid x:Name="OldFilesGrid" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="大小" Binding="{Binding SizeText}" Width="100"/><DataGridTextColumn Header="未修改天数" Binding="{Binding DaysOld}" Width="105"/><DataGridTextColumn Header="类型" Binding="{Binding Category}" Width="160"/><DataGridTextColumn Header="风险" Binding="{Binding Risk}" Width="95"/><DataGridTextColumn Header="最后修改" Binding="{Binding LastModifiedText}" Width="130"/><DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="460"/><DataGridTextColumn Header="说明" Binding="{Binding Note}" Width="*"/></DataGrid.Columns></DataGrid>
                             </DockPanel>
                         </TabItem>
 
                         <TabItem Header="重复文件">
                             <DockPanel>
-                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10">
-                                    <TextBlock Text="最小文件（MB）" VerticalAlignment="Center"/>
-                                    <TextBox x:Name="DuplicateMinBox" Text="100" Width="80" Padding="6" Margin="8,0,8,0"/>
-                                    <Button x:Name="DuplicateButton" Content="扫描重复文件" Click="FindDuplicates_Click" Background="#FFEEF2FF"/>
-                                    <Button Content="定位第一份" Click="OpenDuplicateFirst_Click"/>
-                                    <Button Content="复制全部路径" Click="CopyDuplicatePaths_Click"/>
-                                    <TextBlock x:Name="DuplicateWasteText" Text="预计可回收：0 B" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="SemiBold"/>
-                                </StackPanel>
-                                <DataGrid x:Name="DuplicateGrid" AutoGenerateColumns="False">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="单文件大小" Binding="{Binding FileSizeText}" Width="110"/>
-                                        <DataGridTextColumn Header="份数" Binding="{Binding Count}" Width="70"/>
-                                        <DataGridTextColumn Header="可回收" Binding="{Binding ReclaimableText}" SortMemberPath="ReclaimableBytes" Width="110"/>
-                                        <DataGridTextColumn Header="第一份路径" Binding="{Binding FirstPath}" Width="560"/>
-                                        <DataGridTextColumn Header="SHA-256" Binding="{Binding Hash}" Width="*"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10"><TextBlock Text="最小文件（MB）" VerticalAlignment="Center"/><TextBox x:Name="DuplicateMinBox" Text="100" Width="80" Padding="6" Margin="8,0,8,0"/><Button x:Name="DuplicateButton" Content="扫描重复文件" Click="FindDuplicates_Click" Background="#FFEEF2FF"/><Button Content="定位第一份" Click="OpenDuplicateFirst_Click"/><Button Content="复制全部路径" Click="CopyDuplicatePaths_Click"/><TextBlock x:Name="DuplicateWasteText" Text="预计可回收：0 B" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="SemiBold"/></StackPanel>
+                                <DataGrid x:Name="DuplicateGrid" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="单文件大小" Binding="{Binding FileSizeText}" Width="110"/><DataGridTextColumn Header="份数" Binding="{Binding Count}" Width="70"/><DataGridTextColumn Header="可回收" Binding="{Binding ReclaimableText}" Width="110"/><DataGridTextColumn Header="第一份路径" Binding="{Binding FirstPath}" Width="560"/><DataGridTextColumn Header="SHA-256" Binding="{Binding Hash}" Width="*"/></DataGrid.Columns></DataGrid>
                             </DockPanel>
                         </TabItem>
 
                         <TabItem Header="清理线索">
                             <DockPanel>
-                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10">
-                                    <TextBlock Text="应用缓存、下载目录、视频缓存、开发缓存等“值得检查”的位置；不是无脑删除清单。" Foreground="#FF6B7280" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                    <Button Content="打开文件夹" Click="OpenCleanupFolder_Click"/>
-                                </StackPanel>
-                                <DataGrid x:Name="CleanupGrid" AutoGenerateColumns="False">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="大小" Binding="{Binding SizeText}" SortMemberPath="SizeBytes" Width="100"/>
-                                        <DataGridTextColumn Header="类型" Binding="{Binding Category}" Width="200"/>
-                                        <DataGridTextColumn Header="风险" Binding="{Binding Risk}" Width="100"/>
-                                        <DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="490"/>
-                                        <DataGridTextColumn Header="建议" Binding="{Binding Note}" Width="*"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10"><TextBlock Text="值得检查，不等于可以无脑删除。" Foreground="#FF6B7280" VerticalAlignment="Center" Margin="0,0,12,0"/><Button Content="打开文件夹" Click="OpenCleanupFolder_Click"/></StackPanel>
+                                <DataGrid x:Name="CleanupGrid" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="大小" Binding="{Binding SizeText}" Width="100"/><DataGridTextColumn Header="类型" Binding="{Binding Category}" Width="200"/><DataGridTextColumn Header="风险" Binding="{Binding Risk}" Width="100"/><DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="490"/><DataGridTextColumn Header="建议" Binding="{Binding Note}" Width="*"/></DataGrid.Columns></DataGrid>
+                            </DockPanel>
+                        </TabItem>
+
+                        <TabItem Header="疑似残留">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10"><TextBlock Text="只做保守推断：未匹配到当前安装项 + 应用数据/缓存特征 + 时间特征。" Foreground="#FF6B7280" VerticalAlignment="Center" Margin="0,0,12,0"/><Button Content="打开" Click="OpenResidue_Click"/><Button Content="进入隔离区" Click="QuarantineResidue_Click" Background="#FFFFF7ED"/></StackPanel>
+                                <DataGrid x:Name="ResidueGrid" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="大小" Binding="{Binding SizeText}" Width="100"/><DataGridTextColumn Header="置信度" Binding="{Binding ConfidenceText}" Width="90"/><DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="500"/><DataGridTextColumn Header="依据" Binding="{Binding Reason}" Width="*"/><DataGridTextColumn Header="建议" Binding="{Binding SuggestedAction}" Width="300"/></DataGrid.Columns></DataGrid>
+                            </DockPanel>
+                        </TabItem>
+
+                        <TabItem Header="增长历史">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Margin="12" Foreground="#FF6B7280" Text="每次扫描自动保存一份本地快照。这里显示相对上一次扫描增长明显的目录；首次扫描没有对比数据。" TextWrapping="Wrap"/>
+                                <DataGrid x:Name="GrowthGrid" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="增长" Binding="{Binding GrowthText}" Width="120"/><DataGridTextColumn Header="上次" Binding="{Binding PreviousText}" Width="120"/><DataGridTextColumn Header="现在" Binding="{Binding CurrentText}" Width="120"/><DataGridTextColumn Header="路径" Binding="{Binding Path}" Width="*"/></DataGrid.Columns></DataGrid>
+                            </DockPanel>
+                        </TabItem>
+
+                        <TabItem Header="清理计划">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Margin="12" Foreground="#FF6B7280" Text="三档计划是空间估算和决策辅助，不会自动批量永久删除。建议从保守档开始。"/>
+                                <DataGrid x:Name="CleanupPlanGrid" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="档位" Binding="{Binding Level}" Width="110"/><DataGridTextColumn Header="预计可释放" Binding="{Binding EstimatedText}" Width="130"/><DataGridTextColumn Header="项目数" Binding="{Binding ItemCount}" Width="80"/><DataGridTextColumn Header="包含" Binding="{Binding Includes}" Width="*"/><DataGridTextColumn Header="风险提示" Binding="{Binding Warning}" Width="360"/></DataGrid.Columns></DataGrid>
+                            </DockPanel>
+                        </TabItem>
+
+                        <TabItem Header="隔离区">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10"><Button Content="刷新" Click="RefreshQuarantine_Click"/><Button Content="恢复到原位置" Click="RestoreQuarantine_Click" Background="#FFECFDF5"/><TextBlock Text="隔离区保留原路径，可撤销。若原位置已有同名内容，恢复会拒绝覆盖。" Foreground="#FF6B7280" VerticalAlignment="Center" Margin="10,0,0,0"/></StackPanel>
+                                <DataGrid x:Name="QuarantineGrid" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="大小" Binding="{Binding SizeText}" Width="100"/><DataGridTextColumn Header="隔离时间" Binding="{Binding CreatedText}" Width="140"/><DataGridTextColumn Header="原位置" Binding="{Binding OriginalPath}" Width="*"/><DataGridTextColumn Header="隔离位置" Binding="{Binding QuarantinePath}" Width="420"/></DataGrid.Columns></DataGrid>
+                            </DockPanel>
+                        </TabItem>
+
+                        <TabItem Header="相似媒体">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10"><Button Content="分析当前大文件" Click="FindSimilarMedia_Click"/><Button Content="定位第一份" Click="OpenSimilarMedia_Click"/><Button Content="复制路径" Click="CopySimilarMediaPaths_Click"/><TextBlock Text="这是文件名+体积相似候选，不等于哈希重复；用于找转码、改名、副本。" Foreground="#FF6B7280" VerticalAlignment="Center" Margin="10,0,0,0"/></StackPanel>
+                                <DataGrid x:Name="SimilarMediaGrid" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="候选组" Binding="{Binding Key}" Width="180"/><DataGridTextColumn Header="份数" Binding="{Binding Count}" Width="70"/><DataGridTextColumn Header="总大小" Binding="{Binding TotalText}" Width="110"/><DataGridTextColumn Header="第一份" Binding="{Binding FirstPath}" Width="520"/><DataGridTextColumn Header="判断依据" Binding="{Binding Reason}" Width="*"/></DataGrid.Columns></DataGrid>
                             </DockPanel>
                         </TabItem>
                     </TabControl>
