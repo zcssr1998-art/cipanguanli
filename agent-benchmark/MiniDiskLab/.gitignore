@@ -1,0 +1,13 @@
+# 构建产物
+bin/
+obj/
+TestResults/
+
+# 测试运行时生成的临时数据（由“生成测试数据”按钮 / --self-test 创建）
+test_data/
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo

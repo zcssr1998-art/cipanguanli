@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>MiniDiskLab.Core</RootNamespace>
+    <AssemblyName>MiniDiskLab.Core</AssemblyName>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 让测试项目可以访问 internal 成员（例如测试辅助工厂）。 -->
+    <InternalsVisibleTo Include="MiniDiskLab.Tests" />
+  </ItemGroup>
+
+</Project>

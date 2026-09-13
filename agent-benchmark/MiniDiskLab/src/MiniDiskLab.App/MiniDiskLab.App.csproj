@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <!-- 仅用于 FolderBrowserDialog（文件夹选择）。
+         注意：WinForms 的隐式 using 会与 WPF 的 MessageBox / Application /
+         Color / SaveFileDialog 等类型产生 CS0104 歧义，因此这里显式关闭，
+         并在需要的位置使用完全限定名或别名。 -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>MiniDiskLab.App</RootNamespace>
+    <AssemblyName>MiniDiskLab</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <Version>1.0.0</Version>
+    <AssemblyTitle>MiniDiskLab</AssemblyTitle>
+    <Product>MiniDiskLab</Product>
+    <Description>小型 Windows 磁盘分析工具</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MiniDiskLab.Core\MiniDiskLab.Core.csproj" />
+  </ItemGroup>
+
+</Project>

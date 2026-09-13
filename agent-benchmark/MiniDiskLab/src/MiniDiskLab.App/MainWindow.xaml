@@ -1,0 +1,264 @@
+<Window x:Class="MiniDiskLab.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MiniDiskLab - 磁盘大文件分析工具"
+        Height="760" Width="1220"
+        MinHeight="520" MinWidth="900"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResize"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Foreground="{DynamicResource PrimaryTextBrush}"
+        FontFamily="Microsoft YaHei UI, Segoe UI"
+        FontSize="13">
+
+  <Window.Resources>
+    <!-- 结果表格的行样式：鼠标悬停高亮，保持可读性 -->
+    <Style TargetType="DataGridRow">
+      <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+    </Style>
+    <Style TargetType="DataGridColumnHeader">
+      <Setter Property="Background" Value="{DynamicResource GridHeaderBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+      <Setter Property="Padding" Value="8,6" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="0,0,1,1" />
+    </Style>
+    <Style TargetType="DataGridCell">
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="6,4" />
+      <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+      <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=Content}" />
+    </Style>
+  </Window.Resources>
+
+  <Grid Margin="14">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />   <!-- 标题 -->
+      <RowDefinition Height="Auto" />   <!-- 配置区 -->
+      <RowDefinition Height="Auto" />   <!-- 操作按钮 -->
+      <RowDefinition Height="Auto" />   <!-- 状态 + 进度 -->
+      <RowDefinition Height="*" />      <!-- 结果表格 -->
+      <RowDefinition Height="Auto" />   <!-- 底部工具条 -->
+      <RowDefinition Height="Auto" />   <!-- 状态栏 -->
+    </Grid.RowDefinitions>
+
+    <!-- ============ 标题 ============ -->
+    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+      <TextBlock Text="MiniDiskLab"
+                 FontSize="21" FontWeight="Bold"
+                 Foreground="{DynamicResource PrimaryTextBrush}" />
+      <TextBlock Text="扫描指定目录，找出所有达到阈值的大文件"
+                 FontSize="13" Margin="12,8,0,0"
+                 Foreground="{DynamicResource SecondaryTextBrush}" />
+    </StackPanel>
+
+    <!-- ============ 配置区 ============ -->
+    <Border Grid.Row="1"
+            Background="{DynamicResource PanelBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1" CornerRadius="6" Padding="14,12">
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!-- 扫描目录 -->
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="扫描目录："
+                   Style="{StaticResource FieldLabel}" Margin="0,0,8,0" />
+        <TextBox Grid.Row="0" Grid.Column="1"
+                 x:Name="PathTextBox"
+                 Style="{StaticResource InputBox}"
+                 Margin="0,0,8,0"
+                 ToolTip="选择或粘贴要扫描的本地文件夹路径" />
+        <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal">
+          <Button x:Name="BrowseButton" Content="选择…"
+                  Style="{StaticResource PlainButton}"
+                  Click="BrowseButton_Click" />
+          <Button x:Name="DriveScanButton" Content="整个盘符"
+                  Style="{StaticResource PlainButton}" Margin="6,0,0,0"
+                  Click="DriveScanButton_Click"
+                  ToolTip="扫描该路径所在盘符的根目录" />
+        </StackPanel>
+
+        <!-- 大文件阈值 -->
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="大文件阈值："
+                   Style="{StaticResource FieldLabel}" Margin="0,10,8,0" />
+        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,10,0,0">
+          <TextBox x:Name="ThresholdTextBox" Text="500"
+                   Style="{StaticResource InputBox}"
+                   Width="120" HorizontalAlignment="Left"
+                   TextChanged="ThresholdTextBox_TextChanged"
+                   ToolTip="只列出达到或超过该大小的文件" />
+          <ComboBox x:Name="UnitComboBox"
+                    Style="{StaticResource UnitBox}"
+                    Width="90" Margin="8,0,0,0"
+                    SelectionChanged="UnitComboBox_SelectionChanged"
+                    SelectedIndex="1">
+            <ComboBoxItem Content="KB" />
+            <ComboBoxItem Content="MB" />
+            <ComboBoxItem Content="GB" />
+          </ComboBox>
+          <TextBlock x:Name="ThresholdHintText"
+                     Margin="12,0,0,0" VerticalAlignment="Center"
+                     Foreground="{DynamicResource SecondaryTextBrush}"
+                     Text="= 500 MB" />
+        </StackPanel>
+
+        <!-- 搜索 / 筛选（额外挑战功能） -->
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="结果筛选："
+                   Style="{StaticResource FieldLabel}" Margin="0,10,8,0" />
+        <StackPanel Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
+                    Orientation="Horizontal" Margin="0,10,0,0">
+          <TextBox x:Name="SearchTextBox" Width="220"
+                   Style="{StaticResource InputBox}"
+                   TextChanged="SearchTextBox_TextChanged"
+                   ToolTip="按文件名或路径搜索" />
+          <TextBlock Text="文件名/路径包含"
+                     Margin="8,0,16,0" VerticalAlignment="Center"
+                     Foreground="{DynamicResource SecondaryTextBrush}" />
+          <ComboBox x:Name="CategoryFilterComboBox" Width="170"
+                    Style="{StaticResource UnitBox}"
+                    SelectionChanged="CategoryFilterComboBox_SelectionChanged"
+                    ToolTip="按类型筛选" />
+          <Button x:Name="ClearFilterButton" Content="清除筛选"
+                  Style="{StaticResource PlainButton}" Margin="10,0,0,0"
+                  Click="ClearFilterButton_Click" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ============ 操作按钮 ============ -->
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,0">
+      <Button x:Name="StartButton" Content="开始扫描"
+              Style="{StaticResource ActionButton}"
+              Click="StartButton_Click" />
+      <Button x:Name="CancelButton" Content="取消"
+              Style="{StaticResource PlainButton}" Margin="8,0,0,0"
+              IsEnabled="False"
+              Click="CancelButton_Click" />
+      <Button x:Name="ThemeButton" Content="深色模式"
+              Style="{StaticResource PlainButton}" Margin="8,0,0,0"
+              Click="ThemeButton_Click"
+              ToolTip="在浅色 / 深色之间切换" />
+      <Button x:Name="CreateTestDataButton" Content="生成测试数据"
+              Style="{StaticResource PlainButton}" Margin="8,0,0,0"
+              Click="CreateTestDataButton_Click"
+              ToolTip="在 test_data/ 目录下创建安全的测试文件（不会删除任何真实文件）" />
+    </StackPanel>
+
+    <!-- ============ 状态 + 进度 ============ -->
+    <Border Grid.Row="3"
+            Background="{DynamicResource PanelBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,12,0,0">
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 扫描状态 -->
+        <TextBlock Grid.Row="0"
+                   x:Name="StatusText"
+                   Text="扫描状态：等待开始"
+                   TextTrimming="CharacterEllipsis"
+                   Foreground="{DynamicResource PrimaryTextBrush}" />
+
+        <!-- 进度条（不确定进度，避免虚假百分比） -->
+        <ProgressBar Grid.Row="1"
+                     x:Name="ScanProgressBar"
+                     Height="4" Margin="0,8,0,0"
+                     IsIndeterminate="False"
+                     Value="0" Minimum="0" Maximum="100"
+                     Foreground="{DynamicResource AccentBrush}" />
+
+        <!-- 进度信息 -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+          <TextBlock x:Name="ScannedCountText" Text="已扫描 0 个文件"
+                     Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,20,0" />
+          <TextBlock x:Name="LargeFileCountText" Text="发现 0 个大文件"
+                     Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,20,0" />
+          <TextBlock x:Name="SkippedCountText" Text="跳过 0 个无权限目录"
+                     Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,20,0" />
+          <TextBlock x:Name="SpeedText" Text="0.0 文件/秒"
+                     Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,20,0" />
+          <TextBlock x:Name="ElapsedText" Text="耗时 0.0s"
+                     Foreground="{DynamicResource SecondaryTextBrush}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ============ 结果表格 ============ -->
+    <DataGrid Grid.Row="4"
+              x:Name="ResultsGrid"
+              Margin="0,12,0,0"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              CanUserAddRows="False"
+              CanUserDeleteRows="False"
+              HeadersVisibility="Column"
+              GridLinesVisibility="Horizontal"
+              HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
+              SelectionMode="Extended"
+              SelectionUnit="FullRow"
+              EnableRowVirtualization="True"
+              VirtualizingPanel.IsVirtualizing="True"
+              VirtualizingPanel.VirtualizationMode="Recycling"
+              RowHeaderWidth="0"
+              Background="{DynamicResource PanelBackgroundBrush}"
+              BorderBrush="{DynamicResource BorderBrush}"
+              BorderThickness="1"
+              Foreground="{DynamicResource PrimaryTextBrush}"
+              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+              ScrollViewer.VerticalScrollBarVisibility="Auto">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="大小" Binding="{Binding SizeText}" Width="110" />
+        <DataGridTextColumn Header="类型" Binding="{Binding CategoryLabel}" Width="130" />
+        <DataGridTextColumn Header="说明" Binding="{Binding Description}" Width="300" />
+        <DataGridTextColumn Header="文件名" Binding="{Binding FileName}" Width="240" />
+        <DataGridTextColumn Header="完整路径" Binding="{Binding FullPath}" Width="*" />
+        <DataGridTextColumn Header="修改时间" Binding="{Binding LastWriteText}" Width="150" />
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <!-- ============ 底部工具条 ============ -->
+    <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,12,0,0">
+      <Button x:Name="ExportCsvButton" Content="导出 CSV"
+              Style="{StaticResource ActionButton}"
+              IsEnabled="False"
+              Click="ExportCsvButton_Click" />
+      <Button x:Name="ExportJsonButton" Content="导出 JSON"
+              Style="{StaticResource PlainButton}" Margin="8,0,0,0"
+              IsEnabled="False"
+              Click="ExportJsonButton_Click" />
+      <Button x:Name="ExportExtensionStatsButton" Content="导出扩展名统计"
+              Style="{StaticResource PlainButton}" Margin="8,0,0,0"
+              IsEnabled="False"
+              Click="ExportExtensionStatsButton_Click" />
+      <Button x:Name="TopDirectoriesButton" Content="Top 10 最大目录"
+              Style="{StaticResource PlainButton}" Margin="8,0,0,0"
+              IsEnabled="False"
+              Click="TopDirectoriesButton_Click" />
+    </StackPanel>
+
+    <!-- ============ 状态栏 ============ -->
+    <Border Grid.Row="6" Margin="0,10,0,0"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="0,1,0,0" Padding="0,8,0,0">
+      <TextBlock x:Name="FooterText"
+                 Text="尚未扫描。请选择目录并点击“开始扫描”。"
+                 TextTrimming="CharacterEllipsis"
+                 Foreground="{DynamicResource SecondaryTextBrush}" />
+    </Border>
+  </Grid>
+</Window>
